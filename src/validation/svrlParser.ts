@@ -14,13 +14,30 @@ interface XPathSegment {
     index: number; // 1-based occurrence index
 }
 
+export function parseSvrlOutputFromContent(
+    svrlXml: string,
+    sourceContent: string,
+    source: 'en16931' | 'peppol'
+): ValidationIssue[] {
+    const sourceLines = sourceContent.split(/\r?\n/);
+    return parseSvrlWithLines(svrlXml, sourceLines, source);
+}
+
 export function parseSvrlOutput(
     svrlXml: string,
     sourceFilePath: string,
     source: 'en16931' | 'peppol'
 ): ValidationIssue[] {
     const sourceContent = fs.readFileSync(sourceFilePath, 'utf8');
-    const sourceLines = sourceContent.split('\n');
+    const sourceLines = sourceContent.split(/\r?\n/);
+    return parseSvrlWithLines(svrlXml, sourceLines, source);
+}
+
+function parseSvrlWithLines(
+    svrlXml: string,
+    sourceLines: string[],
+    source: 'en16931' | 'peppol'
+): ValidationIssue[] {
 
     const issues: ValidationIssue[] = [];
 

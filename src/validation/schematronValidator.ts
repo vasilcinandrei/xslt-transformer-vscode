@@ -4,7 +4,8 @@ import * as path from 'path';
 import * as process from 'process';
 import { ValidationIssue } from './types';
 import { execAsync, checkToolAvailable, getInstallInstructions } from '../utils/execAsync';
-import { parseSvrlOutput } from './svrlParser';
+import { parseSvrlOutput, parseSvrlOutputFromContent } from './svrlParser';
+import { writeTempFile } from '../utils/tempFile';
 
 export type SchematronRuleset = 'en16931' | 'peppol';
 
@@ -12,6 +13,26 @@ const XSLT_FILES: Record<SchematronRuleset, string> = {
     en16931: path.join('schematron', 'en16931', 'EN16931-UBL-validation.xslt'),
     peppol: path.join('schematron', 'peppol', 'PEPPOL-EN16931-UBL.xslt'),
 };
+
+export async function validateSchematronFromContent(
+    content: string,
+    ruleset: SchematronRuleset,
+    artifactsPath: string
+): Promise<ValidationIssue[]> {
+    const tmp = writeTempFile(content, '.xml');
+    try {
+        const xsltFile = path.join(artifactsPath, XSLT_FILES[ruleset]);
+        if (!fs.existsSync(xsltFile)) {
+            throw new Error(
+                `${ruleset} XSLT not found at ${xsltFile}. ` +
+                `Please reinstall the extension or run the download-artifacts script.`
+            );
+        }
+        return await validateWithSaxonFromContent(xsltFile, tmp.filePath, content, ruleset);
+    } finally {
+        tmp.cleanup();
+    }
+}
 
 export async function validateSchematron(
     filePath: string,
@@ -202,6 +223,51 @@ async function validateWithSaxon(
     } catch (error: any) {
         if (error.stdout && error.stdout.includes('svrl:')) {
             return parseSvrlOutput(error.stdout, filePath, ruleset);
+        }
+        throw new Error(`Schematron validation (${ruleset}) with Saxon failed: ${error.message}`);
+    }
+}
+
+async function validateWithSaxonFromContent(
+    xsltFile: string,
+    tempFilePath: string,
+    sourceContent: string,
+    ruleset: SchematronRuleset
+): Promise<ValidationIssue[]> {
+    const javaAvailable = await checkToolAvailable('java');
+    if (!javaAvailable) {
+        throw new Error(
+            `Java is required for Schematron validation (${ruleset}) but is not installed or not in your PATH. ` +
+            getInstallInstructions('java')
+        );
+    }
+
+    const saxonJar = findSaxonJar();
+    if (!saxonJar) {
+        throw new Error(
+            `Saxon-HE is required for Schematron validation (${ruleset}) but was not found. ` +
+            getSaxonInstallInstructions()
+        );
+    }
+
+    const cpSeparator = process.platform === 'win32' ? ';' : ':';
+    let classpath = saxonJar;
+    const xmlResolverJar = findXmlResolverJar();
+    if (xmlResolverJar) {
+        classpath = `${saxonJar}${cpSeparator}${xmlResolverJar}`;
+    }
+
+    try {
+        const { stdout } = await execAsync('java', [
+            '-cp', classpath,
+            'net.sf.saxon.Transform',
+            `-s:${tempFilePath}`,
+            `-xsl:${xsltFile}`,
+        ]);
+        return parseSvrlOutputFromContent(stdout, sourceContent, ruleset);
+    } catch (error: any) {
+        if (error.stdout && error.stdout.includes('svrl:')) {
+            return parseSvrlOutputFromContent(error.stdout, sourceContent, ruleset);
         }
         throw new Error(`Schematron validation (${ruleset}) with Saxon failed: ${error.message}`);
     }

@@ -2,7 +2,7 @@
   "name": "xslt-transformer",
   "displayName": "UBL Validator",
   "description": "Transform XML with XSLT and validate UBL 2.1 documents (XSD + EN16931 + Peppol BIS 3.0)",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "publisher": "AndreiVasilcin",
   "author": {
     "name": "Andrei Vasilcin"

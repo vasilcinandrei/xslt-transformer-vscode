@@ -2,6 +2,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { ValidationIssue, UblDocumentInfo } from './types';
 import { execAsync, checkToolAvailable, getInstallInstructions } from '../utils/execAsync';
+import { writeTempFile } from '../utils/tempFile';
 
 export async function validateXsd(
     filePath: string,
@@ -30,9 +31,22 @@ export async function validateXsd(
     }
 }
 
+export async function validateXsdFromContent(
+    content: string,
+    docInfo: UblDocumentInfo,
+    artifactsPath: string
+): Promise<ValidationIssue[]> {
+    const tmp = writeTempFile(content, '.xml');
+    try {
+        return await validateXsd(tmp.filePath, docInfo, artifactsPath);
+    } finally {
+        tmp.cleanup();
+    }
+}
+
 function parseXmllintErrors(stderr: string, filePath: string): ValidationIssue[] {
     const issues: ValidationIssue[] = [];
-    const lines = stderr.split('\n');
+    const lines = stderr.split(/\r?\n/);
 
     for (const line of lines) {
         // xmllint error format: file.xml:line: element foo: Schemas validity error : ...

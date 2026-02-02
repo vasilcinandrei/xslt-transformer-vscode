@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
-import { transformCommand } from './commands/transformCommand';
+import { createTransformCommand } from './commands/transformCommand';
 import { createValidateCommand } from './commands/validateCommand';
+import { MissingElementCodeActionProvider } from './analysis/codeActionProvider';
 
 let diagnosticCollection: vscode.DiagnosticCollection;
 
@@ -11,7 +12,7 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(diagnosticCollection);
 
     context.subscriptions.push(
-        vscode.commands.registerCommand('xslt-transformer.transform', transformCommand)
+        vscode.commands.registerCommand('xslt-transformer.transform', createTransformCommand(context))
     );
 
     context.subscriptions.push(
@@ -32,6 +33,15 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand(
             'xslt-transformer.validateUblBusinessRules',
             createValidateCommand(context, 'business-rules-only')
+        )
+    );
+
+    // Code action provider for missing element Quick Fix suggestions
+    context.subscriptions.push(
+        vscode.languages.registerCodeActionsProvider(
+            { language: 'xml', scheme: '*' },
+            new MissingElementCodeActionProvider(),
+            { providedCodeActionKinds: MissingElementCodeActionProvider.providedCodeActionKinds }
         )
     );
 }

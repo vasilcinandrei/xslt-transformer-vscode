@@ -6,11 +6,14 @@ A powerful VS Code extension for XML transformation and UBL 2.1 document validat
 
 ## Features
 
-### XSLT Transformation
+### XSLT Transformation with Auto-Validation
 - **One-Click Transformation**: Click the transform button in the editor title bar
 - **Easy File Selection**: Popup dialogs to select your XML and XSLT files
 - **Flexible Output**: View results in editor or save to file
 - **XSLT 1.0 Support**: Uses system `xsltproc` (pre-installed on macOS/Linux)
+- **Auto-Validation**: When transform output is a UBL document, XSD + business rules validation runs automatically
+- **XSLT Error Tracing**: Validation errors in the output link back to the exact line in your XSLT stylesheet that produces the problematic element (visible as "Related Information" in the Problems panel)
+- **Missing Element Quick Fix**: Quick Fix suggestions on missing-element diagnostics to jump to the relevant XSLT template
 
 ### UBL 2.1 Document Validation
 - **XSD Schema Validation**: Validates against official OASIS UBL 2.1 schemas for all 65+ document types (Invoice, CreditNote, Order, etc.)
@@ -18,14 +21,16 @@ A powerful VS Code extension for XML transformation and UBL 2.1 document validat
 - **Peppol BIS 3.0 Rules**: OpenPEPPOL billing specification validation
 - **Inline Diagnostics**: Errors and warnings appear directly on the problematic lines in VS Code's Problems panel
 - **Smart XPath Resolution**: Precise line number mapping from Schematron validation results
+- **Element-Level Error Mapping**: Validation errors are placed on the specific element in the output, not just the root tag
 
 ## Usage
 
 ### XSLT Transformation
-1. Click the transform button (⚙️) in the editor title bar
+1. Click the transform button in the editor title bar
 2. Select your input XML file
 3. Select your XSLT stylesheet
 4. Choose to view result in editor or save to file
+5. If the output is a UBL document, validation runs automatically and errors appear in the Problems panel with links back to your XSLT source
 
 Or use Command Palette (`Cmd+Shift+P`): **"XSLT: Transform XML"**
 
@@ -88,13 +93,21 @@ The extension validates all UBL 2.1 document types including:
 
 ## Release Notes
 
+### 1.2.0
+- Auto-validation after XSLT transform: when output is detected as UBL, XSD + EN16931 + Peppol validation runs automatically
+- XSLT error tracing: validation errors link back to the exact element-producing line in your XSLT stylesheet
+- Element-level error placement: errors appear on the specific UBL element in the output, not the root tag
+- Rule ID coverage for 65+ EN16931 and Peppol root-level rules with static element mapping
+- Missing element Quick Fix suggestions in the editor
+- Cross-platform compatibility fixes (Windows path handling, CRLF line endings)
+
 ### 1.1.0
-- ✨ **NEW**: Full UBL 2.1 validation support
-- ✨ XSD schema validation for all 65+ UBL document types
-- ✨ EN16931 European e-invoicing standard validation
-- ✨ Peppol BIS 3.0 business rules
-- ✨ Inline diagnostics with precise line numbers
-- ✨ Keyboard shortcut: `Cmd+Shift+V` / `Ctrl+Shift+V`
+- Full UBL 2.1 validation support
+- XSD schema validation for all 65+ UBL document types
+- EN16931 European e-invoicing standard validation
+- Peppol BIS 3.0 business rules
+- Inline diagnostics with precise line numbers
+- Keyboard shortcut: `Cmd+Shift+V` / `Ctrl+Shift+V`
 
 ### 1.0.0
 - Initial XSLT transformation functionality

@@ -84,9 +84,7 @@ const UBL_DOCUMENT_TYPES: Record<string, string> = {
 
 const INVOICE_OR_CREDIT_NOTE = new Set(['Invoice', 'CreditNote']);
 
-export function detectUblDocument(filePath: string): UblDocumentInfo | null {
-    const content = fs.readFileSync(filePath, 'utf8');
-
+export function detectUblDocumentFromContent(content: string): UblDocumentInfo | null {
     // Look at the first 2000 chars for the root element
     const head = content.substring(0, 2000);
 
@@ -110,4 +108,9 @@ export function detectUblDocument(filePath: string): UblDocumentInfo | null {
         documentType: xsdName,
         isInvoiceOrCreditNote: INVOICE_OR_CREDIT_NOTE.has(rootElement),
     };
+}
+
+export function detectUblDocument(filePath: string): UblDocumentInfo | null {
+    const content = fs.readFileSync(filePath, 'utf8');
+    return detectUblDocumentFromContent(content);
 }

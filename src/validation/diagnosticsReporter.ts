@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { ValidationIssue, ValidationResult } from './types';
+import { TracedIssue } from '../tracing/errorTraceMapper';
 
 export function reportDiagnostics(
     collection: vscode.DiagnosticCollection,
@@ -20,6 +21,42 @@ export function reportDiagnostics(
     });
 
     collection.set(uri, diagnostics);
+}
+
+export function reportTracedDiagnostics(
+    collection: vscode.DiagnosticCollection,
+    outputUri: vscode.Uri,
+    tracedIssues: TracedIssue[]
+): void {
+    const diagnostics: vscode.Diagnostic[] = tracedIssues.map(issue => {
+        const line = Math.max(0, issue.line - 1);
+        const range = new vscode.Range(line, issue.column, line, Number.MAX_SAFE_INTEGER);
+        const diagnostic = new vscode.Diagnostic(range, issue.message, issue.severity);
+        diagnostic.source = `ubl-${issue.source}`;
+        if (issue.ruleId) {
+            diagnostic.code = issue.ruleId;
+        }
+
+        // Add related information linking to the exact XSLT source line
+        if (issue.xsltSourceFile && issue.xsltSourceLine) {
+            const xsltUri = vscode.Uri.file(issue.xsltSourceFile);
+            const xsltLine = Math.max(0, issue.xsltSourceLine - 1);
+            const xsltRange = new vscode.Range(xsltLine, 0, xsltLine, Number.MAX_SAFE_INTEGER);
+            const elementInfo = issue.xsltElementName
+                ? `<${issue.xsltElementName}>`
+                : 'element';
+            diagnostic.relatedInformation = [
+                new vscode.DiagnosticRelatedInformation(
+                    new vscode.Location(xsltUri, xsltRange),
+                    `Produced by ${elementInfo} in XSLT at line ${issue.xsltSourceLine}`
+                ),
+            ];
+        }
+
+        return diagnostic;
+    });
+
+    collection.set(outputUri, diagnostics);
 }
 
 export function showSummaryNotification(result: ValidationResult): void {
