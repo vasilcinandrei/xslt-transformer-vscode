@@ -1,0 +1,113 @@
+{
+  "name": "xslt-transformer",
+  "displayName": "UBL Validator",
+  "description": "Transform XML with XSLT and validate UBL 2.1 documents (XSD + EN16931 + Peppol BIS 3.0)",
+  "version": "1.1.0",
+  "publisher": "AndreiVasilcin",
+  "author": {
+    "name": "Andrei Vasilcin"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vasilcinandrei/xslt-transformer-vscode"
+  },
+  "bugs": {
+    "url": "https://github.com/vasilcinandrei/xslt-transformer-vscode/issues"
+  },
+  "homepage": "https://github.com/vasilcinandrei/xslt-transformer-vscode#readme",
+  "icon": "icon.png",
+  "keywords": [
+    "xslt",
+    "xml",
+    "ubl",
+    "validation",
+    "en16931",
+    "peppol",
+    "invoice",
+    "schematron",
+    "xsd"
+  ],
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Linters",
+    "Formatters"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "xslt-transformer.transform",
+        "title": "XSLT: Transform XML",
+        "icon": "$(symbol-misc)"
+      },
+      {
+        "command": "xslt-transformer.validateUbl",
+        "title": "UBL: Validate Document",
+        "icon": "$(check-all)"
+      },
+      {
+        "command": "xslt-transformer.validateUblXsd",
+        "title": "UBL: Validate XSD Only"
+      },
+      {
+        "command": "xslt-transformer.validateUblBusinessRules",
+        "title": "UBL: Validate Business Rules Only"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "xslt-transformer.transform",
+          "group": "navigation"
+        },
+        {
+          "command": "xslt-transformer.validateUbl",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "xslt-transformer.transform"
+        },
+        {
+          "command": "xslt-transformer.validateUbl"
+        },
+        {
+          "command": "xslt-transformer.validateUblXsd"
+        },
+        {
+          "command": "xslt-transformer.validateUblBusinessRules"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "xslt-transformer.validateUbl",
+        "key": "ctrl+shift+v",
+        "mac": "cmd+shift+v",
+        "when": "editorTextFocus"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "^18.x",
+    "@types/vscode": "^1.74.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "typescript": "^5.0.0"
+  }
+}
