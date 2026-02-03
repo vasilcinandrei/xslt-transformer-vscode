@@ -2,6 +2,28 @@ import * as vscode from 'vscode';
 import { ValidationIssue, ValidationResult } from './types';
 import { TracedIssue } from '../tracing/errorTraceMapper';
 
+// Store traced issues per URI so the AI agent can retrieve full trace data from a diagnostic
+const tracedIssueStore = new Map<string, TracedIssue[]>();
+
+export function storeTracedIssues(uri: vscode.Uri, issues: TracedIssue[]): void {
+    tracedIssueStore.set(uri.toString(), issues);
+}
+
+export function getTracedIssue(uri: vscode.Uri, diagnostic: vscode.Diagnostic): TracedIssue | undefined {
+    const issues = tracedIssueStore.get(uri.toString());
+    if (!issues) {
+        return undefined;
+    }
+    const line = diagnostic.range.start.line + 1; // Convert back to 1-indexed
+    return issues.find(i =>
+        i.line === line && i.message === diagnostic.message
+    );
+}
+
+export function getTracedIssues(uri: vscode.Uri): TracedIssue[] | undefined {
+    return tracedIssueStore.get(uri.toString());
+}
+
 export function reportDiagnostics(
     collection: vscode.DiagnosticCollection,
     uri: vscode.Uri,
@@ -57,6 +79,9 @@ export function reportTracedDiagnostics(
     });
 
     collection.set(outputUri, diagnostics);
+
+    // Store traced issues for AI agent retrieval
+    storeTracedIssues(outputUri, tracedIssues);
 }
 
 export function showSummaryNotification(result: ValidationResult): void {

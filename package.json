@@ -2,7 +2,7 @@
   "name": "xslt-transformer",
   "displayName": "UBL Validator",
   "description": "Transform XML with XSLT and validate UBL 2.1 documents (XSD + EN16931 + Peppol BIS 3.0). Only requires Java — everything else is bundled.",
-  "version": "1.3.1",
+  "version": "2.0.0",
   "publisher": "AndreiVasilcin",
   "author": {
     "name": "Andrei Vasilcin"
@@ -58,6 +58,14 @@
       {
         "command": "xslt-transformer.validateUblBusinessRules",
         "title": "UBL: Validate Business Rules Only"
+      },
+      {
+        "command": "xslt-transformer.aiFixAll",
+        "title": "UBL: Fix All Errors with AI"
+      },
+      {
+        "command": "xslt-transformer.aiSetApiKey",
+        "title": "UBL: Set AI API Key"
       }
     ],
     "menus": {
@@ -83,8 +91,37 @@
         },
         {
           "command": "xslt-transformer.validateUblBusinessRules"
+        },
+        {
+          "command": "xslt-transformer.aiFixAll"
+        },
+        {
+          "command": "xslt-transformer.aiSetApiKey"
         }
       ]
+    },
+    "configuration": {
+      "title": "UBL Validator AI",
+      "properties": {
+        "ublValidator.ai.provider": {
+          "type": "string",
+          "enum": ["gemini", "groq", "anthropic", "openai"],
+          "default": "gemini",
+          "description": "AI provider to use for fix suggestions. Gemini and Groq are free, Anthropic and OpenAI are paid."
+        },
+        "ublValidator.ai.model": {
+          "type": "string",
+          "default": "",
+          "description": "Model to use (leave empty for provider default: gemini-2.0-flash for Gemini, llama-3.3-70b-versatile for Groq, claude-sonnet-4-20250514 for Anthropic, gpt-4o for OpenAI)."
+        },
+        "ublValidator.ai.maxRetries": {
+          "type": "number",
+          "default": 3,
+          "minimum": 1,
+          "maximum": 10,
+          "description": "Maximum number of retry attempts if a fix does not resolve the error."
+        }
+      }
     },
     "keybindings": [
       {

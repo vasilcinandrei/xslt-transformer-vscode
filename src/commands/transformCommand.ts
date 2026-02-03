@@ -1,51 +1,83 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
 import * as path from 'path';
 import { detectUblDocumentFromContent } from '../validation/documentDetector';
 import { validateXsdFromContent } from '../validation/xsdValidator';
 import { validateSchematronFromContent } from '../validation/schematronValidator';
 import { ValidationIssue, ValidationResult } from '../validation/types';
 import { reportTracedDiagnostics, showSummaryNotification } from '../validation/diagnosticsReporter';
-import { getDiagnosticCollection } from '../extension';
+import { getDiagnosticCollection, setLastTransformContext } from '../extension';
 import { runInstrumentedTransform } from '../tracing/xsltTracer';
 import { mapIssuesToXsltSource } from '../tracing/errorTraceMapper';
+import { PipelineOptions } from '../pipeline/transformAndValidate';
 
 export function createTransformCommand(
     context: vscode.ExtensionContext
 ): () => Promise<void> {
     return async () => {
         try {
-            const xmlFiles = await vscode.window.showOpenDialog({
-                canSelectMany: false,
-                openLabel: 'Select XML Input File',
-                filters: {
-                    'XML Files': ['xml'],
-                    'All Files': ['*']
+            // Check if the active editor has an XSLT file — if so, use it directly
+            const activeEditor = vscode.window.activeTextEditor;
+            const activeFile = activeEditor?.document.uri.fsPath;
+            const isXsltActive = activeFile &&
+                /\.(xsl|xslt)$/i.test(activeFile) &&
+                activeEditor?.document.uri.scheme === 'file';
+
+            let xmlPath: string;
+            let xslPath: string;
+
+            if (isXsltActive) {
+                // XSLT is in view — only ask for the XML input
+                xslPath = activeFile;
+
+                const xmlFiles = await vscode.window.showOpenDialog({
+                    canSelectMany: false,
+                    openLabel: 'Select XML Input File',
+                    filters: {
+                        'XML Files': ['xml'],
+                        'All Files': ['*']
+                    }
+                });
+
+                if (!xmlFiles || xmlFiles.length === 0) {
+                    vscode.window.showInformationMessage('No XML file selected');
+                    return;
                 }
-            });
 
-            if (!xmlFiles || xmlFiles.length === 0) {
-                vscode.window.showInformationMessage('No XML file selected');
-                return;
-            }
+                xmlPath = xmlFiles[0].fsPath;
+            } else {
+                // No XSLT in view — ask for both files
+                const xmlFiles = await vscode.window.showOpenDialog({
+                    canSelectMany: false,
+                    openLabel: 'Select XML Input File',
+                    filters: {
+                        'XML Files': ['xml'],
+                        'All Files': ['*']
+                    }
+                });
 
-            const xmlPath = xmlFiles[0].fsPath;
-
-            const xslFiles = await vscode.window.showOpenDialog({
-                canSelectMany: false,
-                openLabel: 'Select XSL/XSLT File',
-                filters: {
-                    'XSL Files': ['xsl', 'xslt'],
-                    'All Files': ['*']
+                if (!xmlFiles || xmlFiles.length === 0) {
+                    vscode.window.showInformationMessage('No XML file selected');
+                    return;
                 }
-            });
 
-            if (!xslFiles || xslFiles.length === 0) {
-                vscode.window.showInformationMessage('No XSL file selected');
-                return;
+                xmlPath = xmlFiles[0].fsPath;
+
+                const xslFiles = await vscode.window.showOpenDialog({
+                    canSelectMany: false,
+                    openLabel: 'Select XSL/XSLT File',
+                    filters: {
+                        'XSL Files': ['xsl', 'xslt'],
+                        'All Files': ['*']
+                    }
+                });
+
+                if (!xslFiles || xslFiles.length === 0) {
+                    vscode.window.showInformationMessage('No XSL file selected');
+                    return;
+                }
+
+                xslPath = xslFiles[0].fsPath;
             }
-
-            const xslPath = xslFiles[0].fsPath;
             const artifactsPath = path.join(context.extensionPath, 'validation-artifacts');
             const diagnosticCollection = getDiagnosticCollection();
 
@@ -64,40 +96,12 @@ export function createTransformCommand(
 
                     progress.report({ increment: 20, message: 'Creating output...' });
 
-                    const action = await vscode.window.showQuickPick(
-                        ['Show in Editor', 'Save to File'],
-                        { placeHolder: 'What would you like to do with the result?' }
-                    );
-
-                    let outputDoc: vscode.TextDocument | undefined;
-
-                    if (action === 'Show in Editor') {
-                        outputDoc = await vscode.workspace.openTextDocument({
-                            content: output,
-                            language: 'xml'
-                        });
-                        await vscode.window.showTextDocument(outputDoc);
-                    } else if (action === 'Save to File') {
-                        const saveUri = await vscode.window.showSaveDialog({
-                            defaultUri: vscode.Uri.file(path.join(
-                                path.dirname(xmlPath),
-                                path.basename(xmlPath, '.xml') + '_transformed.xml'
-                            )),
-                            filters: {
-                                'XML Files': ['xml'],
-                                'HTML Files': ['html'],
-                                'Text Files': ['txt'],
-                                'All Files': ['*']
-                            }
-                        });
-
-                        if (saveUri) {
-                            fs.writeFileSync(saveUri.fsPath, output, 'utf8');
-                            vscode.window.showInformationMessage(`Transformation saved to ${saveUri.fsPath}`);
-                            outputDoc = await vscode.workspace.openTextDocument(saveUri);
-                            await vscode.window.showTextDocument(outputDoc);
-                        }
-                    }
+                    // Show output directly in editor
+                    const outputDoc = await vscode.workspace.openTextDocument({
+                        content: output,
+                        language: 'xml'
+                    });
+                    await vscode.window.showTextDocument(outputDoc);
 
                     // Auto-detect UBL and validate if applicable
                     progress.report({ increment: 10, message: 'Detecting document type...' });
@@ -169,9 +173,17 @@ export function createTransformCommand(
                     const tracedIssues = mapIssuesToXsltSource(allIssues, traceEntries, output);
 
                     // Report diagnostics with XSLT source links
-                    if (outputDoc) {
-                        reportTracedDiagnostics(diagnosticCollection, outputDoc.uri, tracedIssues);
-                    }
+                    reportTracedDiagnostics(diagnosticCollection, outputDoc.uri, tracedIssues);
+
+                    // Store transform context for AI fix agent
+                    const pipelineOpts: PipelineOptions = {
+                        sourceXml: xmlPath,
+                        xsltStylesheet: xslPath,
+                        artifactsPath,
+                        extensionPath: context.extensionPath,
+                        enableTracing: true,
+                    };
+                    setLastTransformContext(pipelineOpts, output, outputDoc.uri);
                     showSummaryNotification(validationResult);
 
                 } catch (error: any) {
