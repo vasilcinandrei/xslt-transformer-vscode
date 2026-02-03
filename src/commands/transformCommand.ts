@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { checkToolAvailable, getInstallInstructions } from '../utils/execAsync';
 import { detectUblDocumentFromContent } from '../validation/documentDetector';
 import { validateXsdFromContent } from '../validation/xsdValidator';
 import { validateSchematronFromContent } from '../validation/schematronValidator';
@@ -16,15 +15,6 @@ export function createTransformCommand(
 ): () => Promise<void> {
     return async () => {
         try {
-            const available = await checkToolAvailable('xsltproc');
-            if (!available) {
-                vscode.window.showErrorMessage(
-                    `"xsltproc" is not installed or not in your PATH. ` +
-                    getInstallInstructions('xsltproc')
-                );
-                return;
-            }
-
             const xmlFiles = await vscode.window.showOpenDialog({
                 canSelectMany: false,
                 openLabel: 'Select XML Input File',
@@ -68,7 +58,9 @@ export function createTransformCommand(
                     // Run instrumented transform to get trace entries
                     progress.report({ increment: 20, message: 'Running XSLT transformation...' });
 
-                    const { cleanOutput: output, traceEntries } = await runInstrumentedTransform(xmlPath, xslPath);
+                    const { cleanOutput: output, traceEntries } = await runInstrumentedTransform(
+                        xmlPath, xslPath, context.extensionPath
+                    );
 
                     progress.report({ increment: 20, message: 'Creating output...' });
 
@@ -129,7 +121,9 @@ export function createTransformCommand(
                     // XSD validation
                     progress.report({ increment: 15, message: 'Running XSD validation...' });
                     try {
-                        const xsdIssues = await validateXsdFromContent(output, docInfo, artifactsPath);
+                        const xsdIssues = await validateXsdFromContent(
+                            output, docInfo, artifactsPath, context.extensionPath
+                        );
                         allIssues.push(...xsdIssues);
                         validationResult.xsdPassed = xsdIssues.length === 0;
                     } catch (error: any) {
@@ -141,7 +135,9 @@ export function createTransformCommand(
                     if (docInfo.isInvoiceOrCreditNote) {
                         progress.report({ increment: 15, message: 'Checking EN16931 business rules...' });
                         try {
-                            const en16931Issues = await validateSchematronFromContent(output, 'en16931', artifactsPath);
+                            const en16931Issues = await validateSchematronFromContent(
+                                output, 'en16931', artifactsPath, context.extensionPath
+                            );
                             allIssues.push(...en16931Issues);
                             validationResult.en16931Passed = en16931Issues.filter(
                                 i => i.severity === vscode.DiagnosticSeverity.Error
@@ -154,7 +150,9 @@ export function createTransformCommand(
                         // Peppol BIS 3.0 rules
                         progress.report({ increment: 15, message: 'Checking Peppol BIS 3.0 rules...' });
                         try {
-                            const peppolIssues = await validateSchematronFromContent(output, 'peppol', artifactsPath);
+                            const peppolIssues = await validateSchematronFromContent(
+                                output, 'peppol', artifactsPath, context.extensionPath
+                            );
                             allIssues.push(...peppolIssues);
                             validationResult.peppolPassed = peppolIssues.filter(
                                 i => i.severity === vscode.DiagnosticSeverity.Error

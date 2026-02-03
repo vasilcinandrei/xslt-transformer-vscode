@@ -64,7 +64,7 @@ export function createValidateCommand(
                 if (scope === 'full' || scope === 'xsd-only') {
                     progress.report({ increment: 20, message: 'Running XSD validation...' });
                     try {
-                        const xsdIssues = await validateXsd(filePath, docInfo, artifactsPath);
+                        const xsdIssues = await validateXsd(filePath, docInfo, artifactsPath, context.extensionPath);
                         allIssues.push(...xsdIssues);
                         result.xsdPassed = xsdIssues.length === 0;
                     } catch (error: any) {
@@ -77,7 +77,7 @@ export function createValidateCommand(
                 if ((scope === 'full' || scope === 'business-rules-only') && docInfo.isInvoiceOrCreditNote) {
                     progress.report({ increment: 25, message: 'Checking EN16931 business rules...' });
                     try {
-                        const en16931Issues = await validateSchematron(filePath, 'en16931', artifactsPath);
+                        const en16931Issues = await validateSchematron(filePath, 'en16931', artifactsPath, context.extensionPath);
                         allIssues.push(...en16931Issues);
                         result.en16931Passed = en16931Issues.filter(
                             i => i.severity === vscode.DiagnosticSeverity.Error
@@ -92,7 +92,7 @@ export function createValidateCommand(
                 if ((scope === 'full' || scope === 'business-rules-only') && docInfo.isInvoiceOrCreditNote) {
                     progress.report({ increment: 25, message: 'Checking Peppol BIS 3.0 rules...' });
                     try {
-                        const peppolIssues = await validateSchematron(filePath, 'peppol', artifactsPath);
+                        const peppolIssues = await validateSchematron(filePath, 'peppol', artifactsPath, context.extensionPath);
                         allIssues.push(...peppolIssues);
                         result.peppolPassed = peppolIssues.filter(
                             i => i.severity === vscode.DiagnosticSeverity.Error

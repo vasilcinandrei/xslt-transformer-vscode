@@ -1,29 +1,36 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { ValidationIssue, UblDocumentInfo } from './types';
-import { execAsync, checkToolAvailable, getInstallInstructions } from '../utils/execAsync';
+import { execAsync, checkToolAvailable } from '../utils/execAsync';
 import { writeTempFile } from '../utils/tempFile';
+import { runXsdValidator } from '../utils/javaRunner';
 
 export async function validateXsd(
     filePath: string,
     docInfo: UblDocumentInfo,
-    artifactsPath: string
+    artifactsPath: string,
+    extensionPath: string
 ): Promise<ValidationIssue[]> {
-    const available = await checkToolAvailable('xmllint');
-    if (!available) {
-        throw new Error(
-            `"xmllint" is not installed or not in your PATH. ` +
-            getInstallInstructions('xmllint')
-        );
-    }
-
     const xsdFile = path.join(
         artifactsPath, 'xsd', 'ubl-2.1', 'maindoc',
         `UBL-${docInfo.rootElement}-2.1.xsd`
     );
 
+    // Try xmllint first
+    const xmllintAvailable = await checkToolAvailable('xmllint');
+    if (xmllintAvailable) {
+        try {
+            await execAsync('xmllint', ['--noout', '--schema', xsdFile, filePath]);
+            return [];
+        } catch (error: any) {
+            const stderr: string = error.stderr || '';
+            return parseXmllintErrors(stderr, filePath);
+        }
+    }
+
+    // Fallback to bundled Java XSD validator
     try {
-        await execAsync('xmllint', ['--noout', '--schema', xsdFile, filePath]);
+        await runXsdValidator(extensionPath, xsdFile, filePath);
         return [];
     } catch (error: any) {
         const stderr: string = error.stderr || '';
@@ -34,11 +41,12 @@ export async function validateXsd(
 export async function validateXsdFromContent(
     content: string,
     docInfo: UblDocumentInfo,
-    artifactsPath: string
+    artifactsPath: string,
+    extensionPath: string
 ): Promise<ValidationIssue[]> {
     const tmp = writeTempFile(content, '.xml');
     try {
-        return await validateXsd(tmp.filePath, docInfo, artifactsPath);
+        return await validateXsd(tmp.filePath, docInfo, artifactsPath, extensionPath);
     } finally {
         tmp.cleanup();
     }

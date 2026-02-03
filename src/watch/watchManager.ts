@@ -134,6 +134,7 @@ export class WatchManager {
                 sourceXml: this.sourceXml,
                 xsltStylesheet: this.xsltStylesheet,
                 artifactsPath: this.artifactsPath,
+                extensionPath: this.extensionContext.extensionPath,
                 validationScope: this.validationScope,
             });
 

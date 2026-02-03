@@ -65,6 +65,7 @@ export function createShowMappingCommand(
                     sourceXml,
                     xsltStylesheet,
                     artifactsPath,
+                    extensionPath: context.extensionPath,
                     enableTracing: true,
                     onProgress: (msg) => progress.report({ message: msg }),
                 });

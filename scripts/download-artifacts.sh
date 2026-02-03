@@ -30,6 +30,19 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# ─── Saxon-HE (bundled XSLT 2.0 processor) ────────────────────────
+
+echo "=== Downloading Saxon-HE 10.9 ==="
+SAXON_URL="https://repo1.maven.org/maven2/net/sf/saxon/Saxon-HE/10.9/Saxon-HE-10.9.jar"
+mkdir -p "$PROJECT_DIR/lib"
+if [ ! -f "$PROJECT_DIR/lib/saxon-he-10.9.jar" ]; then
+    echo "Source: $SAXON_URL"
+    "$CURL" "${CURL_OPTS[@]}" -o "$PROJECT_DIR/lib/saxon-he-10.9.jar" "$SAXON_URL"
+    echo "Saxon-HE 10.9 downloaded."
+else
+    echo "Saxon-HE 10.9 already present, skipping."
+fi
+
 # ─── UBL 2.1 XSD ───────────────────────────────────────────────────
 
 echo "=== Downloading UBL 2.1 XSD Schemas ==="
@@ -110,14 +123,18 @@ if [ -n "$PEPPOL_SCH" ]; then
             COMPILE_XSLT=$(find "$TEMP_DIR/schxslt" -name "pipeline-for-svrl.xsl" | head -1)
 
             if [ -n "$COMPILE_XSLT" ]; then
-                # Check for Saxon
+                # Check for Saxon - prefer bundled JAR
                 SAXON_JAR=""
-                for jar in /usr/local/share/saxon/*.jar /opt/homebrew/share/saxon/*.jar "$HOME"/.m2/repository/net/sf/saxon/Saxon-HE/*/Saxon-HE-*.jar; do
-                    if [ -f "$jar" ]; then
-                        SAXON_JAR="$jar"
-                        break
-                    fi
-                done
+                if [ -f "$PROJECT_DIR/lib/saxon-he-10.9.jar" ]; then
+                    SAXON_JAR="$PROJECT_DIR/lib/saxon-he-10.9.jar"
+                else
+                    for jar in /usr/local/share/saxon/*.jar /opt/homebrew/share/saxon/*.jar "$HOME"/.m2/repository/net/sf/saxon/Saxon-HE/*/Saxon-HE-*.jar; do
+                        if [ -f "$jar" ]; then
+                            SAXON_JAR="$jar"
+                            break
+                        fi
+                    done
+                fi
 
                 if [ -n "$SAXON_JAR" ]; then
                     echo "Using Saxon: $SAXON_JAR"

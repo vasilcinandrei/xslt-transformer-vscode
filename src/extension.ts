@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { createTransformCommand } from './commands/transformCommand';
 import { createValidateCommand } from './commands/validateCommand';
 import { MissingElementCodeActionProvider } from './analysis/codeActionProvider';
+import { checkJavaAvailable } from './utils/javaRunner';
 
 let diagnosticCollection: vscode.DiagnosticCollection;
 
@@ -44,6 +45,17 @@ export function activate(context: vscode.ExtensionContext) {
             { providedCodeActionKinds: MissingElementCodeActionProvider.providedCodeActionKinds }
         )
     );
+
+    // Non-blocking Java availability check on activation
+    checkJavaAvailable().then(available => {
+        if (!available) {
+            vscode.window.showWarningMessage(
+                'Java is not installed or not in PATH. XSLT transformation and Schematron validation require Java. ' +
+                '[Install Java](https://adoptium.net/)',
+                'Dismiss'
+            );
+        }
+    });
 }
 
 export function getDiagnosticCollection(): vscode.DiagnosticCollection {

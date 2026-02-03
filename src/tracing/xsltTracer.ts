@@ -1,6 +1,7 @@
 import * as fs from 'fs';
-import { execAsync, checkToolAvailable, getInstallInstructions } from '../utils/execAsync';
+import { execAsync, checkToolAvailable } from '../utils/execAsync';
 import { writeTempFile } from '../utils/tempFile';
+import { runSaxonTransform } from '../utils/javaRunner';
 
 export interface TraceEntry {
     outputLine: number;
@@ -75,30 +76,36 @@ export function instrumentXslt(xsltPath: string): string {
  */
 export async function runInstrumentedTransform(
     sourceXml: string,
-    xsltPath: string
+    xsltPath: string,
+    extensionPath?: string
 ): Promise<{ cleanOutput: string; traceEntries: TraceEntry[] }> {
-    const available = await checkToolAvailable('xsltproc');
-    if (!available) {
-        throw new Error(
-            `"xsltproc" is not installed or not in your PATH. ` +
-            getInstallInstructions('xsltproc')
-        );
-    }
-
     const instrumented = instrumentXslt(xsltPath);
     const tmp = writeTempFile(instrumented, '.xsl');
 
     try {
         let rawOutput: string;
-        try {
-            const result = await execAsync('xsltproc', [tmp.filePath, sourceXml]);
-            rawOutput = result.stdout;
-        } catch (error: any) {
-            if (error.stdout) {
-                rawOutput = error.stdout;
-            } else {
-                throw error;
+
+        // Try xsltproc first
+        const xsltprocAvailable = await checkToolAvailable('xsltproc');
+        if (xsltprocAvailable) {
+            try {
+                const result = await execAsync('xsltproc', [tmp.filePath, sourceXml]);
+                rawOutput = result.stdout;
+            } catch (error: any) {
+                if (error.stdout) {
+                    rawOutput = error.stdout;
+                } else {
+                    throw error;
+                }
             }
+        } else if (extensionPath) {
+            // Fallback to bundled Saxon
+            rawOutput = await runSaxonTransform(extensionPath, sourceXml, tmp.filePath);
+        } else {
+            throw new Error(
+                '"xsltproc" is not installed and no bundled Saxon available. ' +
+                'Install Java to use the bundled XSLT processor.'
+            );
         }
 
         return parseTracedOutput(rawOutput);

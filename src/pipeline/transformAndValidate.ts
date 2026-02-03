@@ -6,6 +6,7 @@ import { validateSchematronFromContent } from '../validation/schematronValidator
 import { UblDocumentInfo, ValidationIssue, ValidationResult, ValidationScope } from '../validation/types';
 import { runInstrumentedTransform, TraceEntry } from '../tracing/xsltTracer';
 import { mapIssuesToXsltSource, TracedIssue } from '../tracing/errorTraceMapper';
+import { runSaxonTransform } from '../utils/javaRunner';
 
 export interface TransformResult {
     output: string;
@@ -20,13 +21,14 @@ export interface PipelineOptions {
     sourceXml: string;
     xsltStylesheet: string;
     artifactsPath: string;
+    extensionPath: string;
     validationScope?: ValidationScope;
     enableTracing?: boolean;
     onProgress?: (message: string) => void;
 }
 
 export async function transformAndValidate(options: PipelineOptions): Promise<TransformResult> {
-    const { sourceXml, xsltStylesheet, artifactsPath, validationScope = 'full', enableTracing = false, onProgress } = options;
+    const { sourceXml, xsltStylesheet, artifactsPath, extensionPath, validationScope = 'full', enableTracing = false, onProgress } = options;
 
     const progress = (msg: string) => onProgress?.(msg);
 
@@ -36,29 +38,28 @@ export async function transformAndValidate(options: PipelineOptions): Promise<Tr
     if (enableTracing) {
         // Step 1 (traced): Run instrumented transform
         progress('Running instrumented XSLT transformation...');
-        const traced = await runInstrumentedTransform(sourceXml, xsltStylesheet);
+        const traced = await runInstrumentedTransform(sourceXml, xsltStylesheet, extensionPath);
         output = traced.cleanOutput;
         traceEntries = traced.traceEntries;
     } else {
-        // Step 1: Run xsltproc normally
+        // Step 1: Try xsltproc, fallback to bundled Saxon
         progress('Running XSLT transformation...');
-        const available = await checkToolAvailable('xsltproc');
-        if (!available) {
-            throw new Error(
-                `"xsltproc" is not installed or not in your PATH. ` +
-                getInstallInstructions('xsltproc')
-            );
-        }
+        const xsltprocAvailable = await checkToolAvailable('xsltproc');
 
-        try {
-            const result = await execAsync('xsltproc', [xsltStylesheet, sourceXml]);
-            output = result.stdout;
-        } catch (error: any) {
-            if (error.stdout) {
-                output = error.stdout;
-            } else {
-                throw new Error(`XSLT transformation failed: ${error.message}`);
+        if (xsltprocAvailable) {
+            try {
+                const result = await execAsync('xsltproc', [xsltStylesheet, sourceXml]);
+                output = result.stdout;
+            } catch (error: any) {
+                if (error.stdout) {
+                    output = error.stdout;
+                } else {
+                    throw new Error(`XSLT transformation failed: ${error.message}`);
+                }
             }
+        } else {
+            // Fallback to bundled Saxon
+            output = await runSaxonTransform(extensionPath, sourceXml, xsltStylesheet);
         }
     }
 
@@ -90,7 +91,7 @@ export async function transformAndValidate(options: PipelineOptions): Promise<Tr
     if (validationScope === 'full' || validationScope === 'xsd-only') {
         progress('Running XSD validation...');
         try {
-            const xsdIssues = await validateXsdFromContent(output, docInfo, artifactsPath);
+            const xsdIssues = await validateXsdFromContent(output, docInfo, artifactsPath, extensionPath);
             allIssues.push(...xsdIssues);
             validationResult.xsdPassed = xsdIssues.length === 0;
         } catch (error: any) {
@@ -103,7 +104,7 @@ export async function transformAndValidate(options: PipelineOptions): Promise<Tr
     if ((validationScope === 'full' || validationScope === 'business-rules-only') && docInfo.isInvoiceOrCreditNote) {
         progress('Checking EN16931 business rules...');
         try {
-            const en16931Issues = await validateSchematronFromContent(output, 'en16931', artifactsPath);
+            const en16931Issues = await validateSchematronFromContent(output, 'en16931', artifactsPath, extensionPath);
             allIssues.push(...en16931Issues);
             validationResult.en16931Passed = en16931Issues.filter(
                 i => i.severity === vscode.DiagnosticSeverity.Error
@@ -118,7 +119,7 @@ export async function transformAndValidate(options: PipelineOptions): Promise<Tr
     if ((validationScope === 'full' || validationScope === 'business-rules-only') && docInfo.isInvoiceOrCreditNote) {
         progress('Checking Peppol BIS 3.0 rules...');
         try {
-            const peppolIssues = await validateSchematronFromContent(output, 'peppol', artifactsPath);
+            const peppolIssues = await validateSchematronFromContent(output, 'peppol', artifactsPath, extensionPath);
             allIssues.push(...peppolIssues);
             validationResult.peppolPassed = peppolIssues.filter(
                 i => i.severity === vscode.DiagnosticSeverity.Error

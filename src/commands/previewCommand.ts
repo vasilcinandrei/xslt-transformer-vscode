@@ -67,6 +67,7 @@ export function createPreviewCommand(
                     sourceXml,
                     xsltStylesheet,
                     artifactsPath,
+                    extensionPath: context.extensionPath,
                     validationScope,
                     onProgress: (msg) => progress.report({ message: msg }),
                 });

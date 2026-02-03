@@ -1,8 +1,8 @@
 {
   "name": "xslt-transformer",
   "displayName": "UBL Validator",
-  "description": "Transform XML with XSLT and validate UBL 2.1 documents (XSD + EN16931 + Peppol BIS 3.0)",
-  "version": "1.2.0",
+  "description": "Transform XML with XSLT and validate UBL 2.1 documents (XSD + EN16931 + Peppol BIS 3.0). Only requires Java — everything else is bundled.",
+  "version": "1.3.0",
   "publisher": "AndreiVasilcin",
   "author": {
     "name": "Andrei Vasilcin"
@@ -96,8 +96,9 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "npm run compile:java && npm run compile",
     "compile": "tsc -p ./",
+    "compile:java": "javac -source 8 -target 8 -d lib/classes java/XsdValidator.java",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile",
     "lint": "eslint src --ext ts"
