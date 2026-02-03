@@ -127,7 +127,7 @@ function parseTracedOutput(raw: string): { cleanOutput: string; traceEntries: Tr
     for (const line of lines) {
         // Check for trace comments in this line
         let traceMatch: RegExpExecArray | null;
-        const lineTraceRegex = /<!--XSLT-TRACE\|([^|]*)\|(\d+)\|([^-]*)-->/g;
+        const lineTraceRegex = /<!--XSLT-TRACE\|([^|]*)\|(\d+)\|(.*?)-->/g;
 
         while ((traceMatch = lineTraceRegex.exec(line)) !== null) {
             traceEntries.push({
@@ -139,7 +139,7 @@ function parseTracedOutput(raw: string): { cleanOutput: string; traceEntries: Tr
         }
 
         // Strip trace comments from the line
-        const cleaned = line.replace(/<!--XSLT-TRACE\|[^-]*-->/g, '');
+        const cleaned = line.replace(/<!--XSLT-TRACE\|.*?-->/g, '');
 
         // Only keep lines that aren't entirely trace comments (whitespace-only after strip)
         if (cleaned.trim() !== '' || !line.includes(TRACE_COMMENT_PREFIX)) {
