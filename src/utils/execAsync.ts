@@ -4,7 +4,7 @@ import * as process from 'process';
 
 const execFilePromise = promisify(execFile);
 
-const MAX_BUFFER = 10 * 1024 * 1024; // 10MB
+const MAX_BUFFER = 1024 * 1024 * 1024; // 1GB
 
 export function execAsync(
     command: string,
