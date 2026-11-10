@@ -1,185 +1,169 @@
-# XSLT Transformer & UBL Validator
+# UBL Validator — XSLT Transformer & UBL 2.1 Validation
 
-A powerful VS Code extension for XML transformation and UBL 2.1 document validation with comprehensive business rules support.
+Transform XML with XSLT 1.0, 2.0 or 3.0 and validate UBL 2.1 documents against the OASIS XSD and the **latest official business rules for the document's country and specification**: EN16931, Peppol BIS, XRechnung, NLCIUS, France CTC, RO_CIUS, HR CIUS, Peppol PINT and more. Every error is traced back to the XSLT line that produced it. Java 11+ is the only thing you need to install.
 
 [![Ko-fi](https://img.shields.io/badge/Support%20on-Ko--fi-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/andreivasilcin)
 
 ## Features
 
-### XSLT Transformation with Auto-Validation
-- **One-Click Transformation**: Click the transform button in the editor title bar
-- **Easy File Selection**: Popup dialogs to select your XML and XSLT files
-- **Flexible Output**: View results in editor or save to file
-- **XSLT 1.0 & 2.0 Support**: Uses bundled Saxon-HE (XSLT 2.0); falls back to system `xsltproc` when available
-- **Auto-Validation**: When transform output is a UBL document, XSD + business rules validation runs automatically
-- **XSLT Error Tracing**: Validation errors in the output link back to the exact line in your XSLT stylesheet that produces the problematic element (visible as "Related Information" in the Problems panel)
-- **Missing Element Quick Fix**: Quick Fix suggestions on missing-element diagnostics to jump to the relevant XSLT template
+### XSLT transformation with automatic validation
+- **Saxon-HE 12** for every transform: XSLT 1.0, 2.0 and 3.0 behave the same on macOS, Linux and Windows.
+- **Transform from the stylesheet you're editing**: with an `.xsl` file open, click the transform button. The input XML you used last time with that stylesheet is offered first.
+- **Automatic UBL validation**: if the output is a UBL document, XSD, EN16931 and Peppol checks run straight away.
+- **Errors traced to your XSLT**: each problem in the output links (in the Problems panel, under *Related Information*) to the stylesheet line that created the element. This includes stylesheets pulled in with `xsl:include` / `xsl:import`.
+- **Watch mode**: *XSLT: Start Watch Mode* re-runs everything when you save the stylesheet, any of its includes, or the input XML, and shows the problems right on the XSLT lines.
+- **Mapping view**: *XSLT: Show XSLT-to-Output Mapping* puts the stylesheet and output side by side. Click a line to see what produced it; double-click to jump to it in the editor.
+- **Compile errors with real line numbers**: stylesheet errors point at your file and line, and `xsl:message` output goes to the *UBL Validator* output channel.
 
-### UBL 2.1 Document Validation
-- **XSD Schema Validation**: Validates against official OASIS UBL 2.1 schemas for all 65+ document types (Invoice, CreditNote, Order, etc.)
-- **EN16931 Business Rules**: European e-invoicing standard compliance (for Invoice and CreditNote)
-- **Peppol BIS 3.0 Rules**: OpenPEPPOL billing specification validation
-- **Inline Diagnostics**: Errors and warnings appear directly on the problematic lines in VS Code's Problems panel
-- **Smart XPath Resolution**: Precise line number mapping from Schematron validation results
-- **Element-Level Error Mapping**: Validation errors are placed on the specific element in the output, not just the root tag
+### UBL 2.1 validation
+- **XSD** for all 65+ UBL 2.1 document types (Invoice, CreditNote, Order, DespatchAdvice, ...).
+- **The right business rules, picked from the document itself**: the extension reads `cbc:CustomizationID`, `cbc:ProfileID` and the seller/buyer countries, then runs the matching rule sets. See [Business rules by country](#business-rules-by-country).
+- **Always the latest rules**: rule sets are downloaded from their official publishers the first time they're needed, cached, and checked for updates daily. The bundled EN16931 and Peppol rules are used when you're offline.
+- **Your own rules**: add compiled Schematron files with `ublValidator.rules.customSchematron`.
+- **Validate on save**: UBL documents are checked whenever you save them, and the result shows in the status bar. Other XML files are ignored.
+- **Unsaved and untitled documents** are validated as they are in the editor.
 
-## Usage
+### AI fix agent (optional)
+- **Fix with AI** appears in the Quick Fix menu (`Cmd+.` / `Ctrl+.`) on traced errors; **UBL: Fix All Errors with AI** works through all of them.
+- Every fix is shown as a **diff for you to accept or reject**, applied through the editor (so **Undo works**), then the transform is re-run to confirm the error is gone. Fixes that don't work are reverted, and the model gets the remaining errors before retrying.
+- Providers: Google Gemini, Groq, Anthropic Claude, OpenAI. API keys are stored in VS Code's secret storage.
+- **Privacy**: before anything is sent, you're asked once per provider. Turn off `ublValidator.ai.includeInputXml` to keep the input XML (often real invoice data) on your machine.
 
-### XSLT Transformation
-1. Click the transform button in the editor title bar
-2. Select your input XML file
-3. Select your XSLT stylesheet
-4. Choose to view result in editor or save to file
-5. If the output is a UBL document, validation runs automatically and errors appear in the Problems panel with links back to your XSLT source
+## Quick start
 
-Or use Command Palette (`Cmd+Shift+P`): **"XSLT: Transform XML"**
+### 1. Install Java 11 or newer
 
-### UBL Validation
-1. Open a UBL 2.1 XML document (Invoice, CreditNote, Order, etc.)
-2. Click the validate button in the editor title bar or press `Cmd+Shift+V` (Mac) / `Ctrl+Shift+V` (Windows/Linux)
-3. View validation results in the Problems panel
+| Platform | Command |
+|---|---|
+| macOS | `brew install openjdk` |
+| Ubuntu / Debian | `sudo apt install openjdk-17-jre` |
+| Fedora / RHEL | `sudo dnf install java-17-openjdk` |
+| Windows | `winget install EclipseAdoptium.Temurin.21.JRE` or [adoptium.net](https://adoptium.net/) |
 
-**Commands:**
-- **UBL: Validate Document** - Full validation (XSD + EN16931 + Peppol)
-- **UBL: Validate XSD Only** - Schema validation only
-- **UBL: Validate Business Rules Only** - EN16931 + Peppol rules only
+Check with `java -version`. If the Java on your `PATH` is older, point `ublValidator.javaPath` at a newer one.
 
-## Quick Start
+### 2. Install the extension
+Search for **"UBL Validator"** in the Extensions view and click Install.
 
-### Step 1: Install Java (the only prerequisite)
+### 3. Try it
+- **Validate**: open a UBL XML file and press `Cmd+Shift+V` / `Ctrl+Shift+V`, or just save it.
+- **Transform**: open an `.xsl` file and click the transform button in the editor title bar (or run **XSLT: Transform XML**).
+- The extension's GitHub repository has a working example in `examples/ubl/`: an order XML, an XSLT 2.0 mapping with an `xsl:include`, and the Peppol invoice it produces.
 
-**macOS:**
-```bash
-brew install openjdk
+## Business rules by country
+
+| Document says (CustomizationID / ProfileID / countries) | Rules run | Published by |
+|---|---|---|
+| `…#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0` | Peppol BIS Billing 3.0, with its own CEN rules and the national rules for **NO, SE, DK, IT, NL, DE, GR, IS, SK**, which switch on from the seller's country | OpenPeppol |
+| `…urn:xeinkauf.de:kosit:xrechnung_3.0` (Germany) | EN16931 + XRechnung 3.0 | KoSIT |
+| `…urn:fdc:nen.nl:nlcius:v1.0` (Netherlands) | NLCIUS / SI-UBL 2.0 (+ G-account extension) | Simplerinvoicing / Peppol Authority NL |
+| France profiles (`S1`…`M9`, `urn:peppol:france:billing…`) or FR seller **and** FR buyer | EN16931 + BR-FR (AFNOR XP Z12-012); EXTENDED-CTC-FR for `…extended-ctc-fr` | FNFE-MPE |
+| `…urn:efactura.mfinante.ro:CIUS-RO` (Romania) | RO_CIUS | ANAF / Ministry of Finance |
+| `…urn:mfin.gov.hr:cius-2025…` (Croatia) | EN16931 + HR CIUS 2025 + extension | Porezna uprava |
+| `urn:peppol:pint:billing-1@aunz-1` / `@jp-1` / `@sg-1` / `@my-1` / `@ae-1` (+ self-billing) | Peppol PINT for Australia/New Zealand, Japan, Singapore, Malaysia, UAE | OpenPeppol |
+| `urn:fdc:peppol.eu:poacc:trns:…:3` | Peppol BIS Order, Despatch Advice, Catalogue, Order Response, Order Change/Cancellation, Order Agreement, Invoice Response, MLR, Punch Out | OpenPeppol |
+| any other `urn:cen.eu:en16931:2017…` | EN16931, with a note that no country-specific rules are known | CEN |
+
+- **Covered through EN16931 and Peppol, with no national UBL rules of their own:** Belgium, Luxembourg, Austria, Slovakia, Ireland, Latvia, Lithuania and Finland.
+- **Not UBL, so they can't be validated as UBL:** Poland (KSeF), Hungary, Czechia (ISDOC), Slovenia (e-SLOG), Italian invoices (FatturaPA), Spain (Facturae) and Estonia. Serbia uses UBL but publishes no official rules.
+
+**UBL: Show Business Rules** shows what the open document contains, which rules apply and why, and every rule set with its installed version. **UBL: Update Business Rules** checks for updates now. **UBL: Download All Business Rules** fetches everything for offline use.
+
+The list of rule sets comes from [`rules/catalog.json`](rules/catalog.json), which is refreshed daily from this repository. New countries and moved downloads therefore reach users without an extension update.
+
+**Safety:**
+- **Where rules come from:** downloads only come over https from the publishers' hosts (GitHub, docs.peppol.eu, mfinante.gov.ro, porezna.gov.hr).
+- **What the remote list can change:** the daily-refreshed catalog can only use GitHub repositories that are already in the bundled catalog, unless you allow more with `ublValidator.rules.allowedRepos`.
+- **What rules can do:** downloaded and custom rules run sandboxed. They can't write files, use the network, read outside their own folder or see environment variables, and they have a time limit.
+- **Settings a project can't override:** settings that run code or choose download sources can only be set in your user settings, not by a project's `.vscode/settings.json`.
+
+## Commands
+
+| Command | What it does |
+|---|---|
+| XSLT: Transform XML | Transform, show the output, validate it if it's UBL |
+| XSLT: Start Watch Mode / Stop Watch Mode | Re-run transform + validation on every save |
+| XSLT: Show XSLT-to-Output Mapping | Side-by-side stylesheet ↔ output view |
+| XSLT: Create Project Config | Write a `.ublproject.json` with input/stylesheet profiles |
+| UBL: Validate Document | XSD + business rules (`Cmd+Shift+V` / `Ctrl+Shift+V` in XML files) |
+| UBL: Validate XSD Only / Business Rules Only | One part of the validation |
+| UBL: Fix All Errors with AI | Work through all traced errors with the AI agent |
+| UBL: Select AI Provider / Set AI API Key | Configure the AI agent |
+| UBL: Show Business Rules | Which rules apply to the open document and why; all rule sets and versions |
+| UBL: Update Business Rules | Check every downloaded rule set for a new version now |
+| UBL: Download All Business Rules | Fetch every rule set for offline use |
+| UBL: Show Validator Info | Java and Saxon versions, active settings |
+
+## Settings
+
+| Setting | Default | Description |
+|---|---|---|
+| `ublValidator.validateOnSave` | `true` | Validate UBL documents when saved |
+| `ublValidator.rules.source` | `latest` | `latest`: download current official rules; `bundled`: offline, EN16931 + Peppol only |
+| `ublValidator.rules.disabled` | `[]` | Rule set ids never to run (e.g. `peppol-bis`, `fr-ctc`) |
+| `ublValidator.rules.autoUpdate` | `true` | Check downloaded rule sets for updates daily |
+| `ublValidator.rules.catalogUrl` | this repo's `rules/catalog.json` | Where the list of rule sets is refreshed from (empty = bundled list only) |
+| `ublValidator.rules.allowedHosts` | `[]` | Extra hosts rule sets may be downloaded from |
+| `ublValidator.rules.allowedRepos` | `[]` | Extra GitHub repos (`owner/name`) the remote catalog may use |
+| `ublValidator.rules.customSchematron` | `[]` | Extra compiled Schematron (XSLT → SVRL) files |
+| `ublValidator.artifactsPath` | `""` | Folder with replacement UBL XSD schemas (same layout as the bundled `validation-artifacts`) |
+| `ublValidator.transformTimeoutSeconds` | `120` | Stop a transform or validation that runs longer |
+| `ublValidator.javaPath` | `""` | Java executable to use (Java 11+) |
+| `ublValidator.ai.provider` | `gemini` | `gemini`, `groq`, `anthropic` or `openai` |
+| `ublValidator.ai.model` | `""` | Override the provider's default model |
+| `ublValidator.ai.maxRetries` | `3` | Attempts per error |
+| `ublValidator.ai.timeoutSeconds` | `180` | Timeout per AI request |
+| `ublValidator.ai.includeInputXml` | `true` | Send the input XML for context |
+| `ublValidator.ai.maxInputXmlChars` | `50000` | Cap on input XML characters sent |
+
+### Project profiles (`.ublproject.json`)
+When the active editor isn't a stylesheet, the transform, watch and mapping commands use the profiles in `.ublproject.json`. Create one with **XSLT: Create Project Config**. The file is schema-checked as you edit it.
+
+```json
+{
+  "version": 1,
+  "defaultProfile": "invoice",
+  "profiles": [
+    { "name": "invoice", "sourceXml": "input/order.xml", "xsltStylesheet": "mappings/to-invoice.xsl", "validationScope": "full" }
+  ]
+}
 ```
 
-**Ubuntu / Debian:**
-```bash
-sudo apt update && sudo apt install default-jre -y
-```
+## Bundled offline rules
 
-**Fedora / RHEL:**
-```bash
-sudo dnf install java-17-openjdk -y
-```
+Used when a rule set can't be downloaded, or with `ublValidator.rules.source` set to `bundled`:
 
-**Windows (PowerShell as Admin):**
-```powershell
-winget install EclipseAdoptium.Temurin.21.JRE
-```
-Or download the installer from [adoptium.net](https://adoptium.net/).
-
-**Verify it works:**
-```bash
-java -version
-```
-You should see output like `openjdk version "17.0.x"` or similar. Any version 8+ works.
-
-### Step 2: Install the Extension
-
-Search for **"UBL Validator"** in VS Code Extensions (`Cmd+Shift+X` / `Ctrl+Shift+X`) and click Install. That's it — everything else is bundled.
-
-### Step 3: Use It
-
-- **Transform XML**: `Cmd+Shift+P` > **XSLT: Transform XML**
-- **Validate UBL**: Open an XML file and press `Cmd+Shift+V` (Mac) / `Ctrl+Shift+V` (Windows/Linux)
+| Rule set | Version |
+|---|---|
+| OASIS UBL XSD | 2.1 |
+| CEN EN16931 UBL Schematron | 1.3.17 (2026-10-12) |
+| Peppol BIS Billing 3.0 Schematron | 3.0.22 (2026-11-04) |
 
 ## Requirements
+- VS Code 1.90 or newer
+- Java 11 or newer
 
-### System Dependencies
-- **VS Code**: 1.74.0 or higher
-- **Java**: 8 or higher — see [Quick Start](#quick-start) above for install commands
+Everything else is bundled: Saxon-HE 12.10 (MPL-2.0) with xmlresolver (Apache-2.0), SchXslt2 (MIT) for compiling Schematron, the UBL 2.1 schemas, and offline copies of the EN16931 and Peppol rules. Other rule sets are downloaded on first use; this needs internet access once per rule set and version.
 
-The extension will show a warning on startup if Java is not detected.
-
-### Optional Tools (used automatically when available)
-These are **not required** — the extension works without them. When present, they're used as faster alternatives:
-- **xsltproc**: For XSLT 1.0 transforms (pre-installed on macOS/Linux)
-- **xmllint**: For XSD validation (pre-installed on macOS/Linux)
-
-### Bundled Components
-The extension bundles everything else it needs — no extra downloads:
-- **Saxon-HE 10.9**: XSLT 2.0 processor (MPL-2.0 license)
-- **XSD Validator**: Built-in Java XSD validator
-- **UBL 2.1 XSD schemas** (OASIS) - All 65+ document types
-- **EN16931 validation rules** (European Commission, EUPL-1.2)
-- **Peppol BIS 3.0 rules** (OpenPEPPOL, MPL-2.0)
-
-## Supported UBL Document Types
-
-The extension validates all UBL 2.1 document types including:
-- Invoice, CreditNote, DebitNote
-- Order, OrderResponse, OrderChange, OrderCancellation
-- DespatchAdvice, ReceiptAdvice
-- Catalogue, CatalogueRequest, CataloguePricingUpdate
-- Quotation, RequestForQuotation
-- ApplicationResponse, Statement, RemittanceAdvice
-- And 50+ more...
-
-## Examples
-
-### Valid UBL Invoice
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2">
-  <cbc:ID>INV-2025-001</cbc:ID>
-  <cbc:IssueDate>2025-02-01</cbc:IssueDate>
-  <!-- Full UBL structure -->
-</Invoice>
-```
-
-Validation passes with no errors
-
-### Validation Results
-- **Errors** appear as red squiggles on the specific line
-- **Warnings** appear as yellow squiggles
-- **Rule IDs** shown in brackets: `[BR-01] Invoice must contain supplier name`
-- Click any issue to jump to the line
-
-## Release Notes
-
-### 1.3.0
-- Bundled Saxon-HE 10.9: no need to install Saxon separately
-- Bundled Java XSD validator: `xmllint` is now optional
-- `xsltproc` is now optional: falls back to bundled Saxon for XSLT transforms
-- Java is the only required system dependency
-- Non-blocking Java availability check on activation with install link
-
-### 1.2.0
-- Auto-validation after XSLT transform: when output is detected as UBL, XSD + EN16931 + Peppol validation runs automatically
-- XSLT error tracing: validation errors link back to the exact element-producing line in your XSLT stylesheet
-- Element-level error placement: errors appear on the specific UBL element in the output, not the root tag
-- Rule ID coverage for 65+ EN16931 and Peppol root-level rules with static element mapping
-- Missing element Quick Fix suggestions in the editor
-- Cross-platform compatibility fixes (Windows path handling, CRLF line endings)
-
-### 1.1.0
-- Full UBL 2.1 validation support
-- XSD schema validation for all 65+ UBL document types
-- EN16931 European e-invoicing standard validation
-- Peppol BIS 3.0 business rules
-- Inline diagnostics with precise line numbers
-- Keyboard shortcut: `Cmd+Shift+V` / `Ctrl+Shift+V`
-
-### 1.0.0
-- Initial XSLT transformation functionality
+## Release notes
+See [CHANGELOG.md](CHANGELOG.md).
 
 ## Support
-
-If you find this extension useful, consider [supporting development on Ko-fi](https://ko-fi.com/andreivasilcin)
+If you find this extension useful, consider [supporting development on Ko-fi](https://ko-fi.com/andreivasilcin).
 
 ## Contributing
-
-Issues and pull requests welcome at [GitHub](https://github.com/vasilcinandrei/xslt-transformer-vscode)
+Issues and pull requests are welcome on [GitHub](https://github.com/vasilcinandrei/xslt-transformer-vscode). See [QUICKSTART.md](QUICKSTART.md) for the development setup.
 
 ## License
-
 MIT License - Copyright (c) 2025 Andrei Vasilcin
 
-Bundled validation artifacts have their own licenses:
+Bundled components have their own licenses:
 - UBL 2.1 XSD: OASIS IPR Policy
 - EN16931: EUPL-1.2
 - Peppol BIS 3.0: MPL-2.0
-- Saxon-HE 10.9: MPL-2.0
+- Saxon-HE 12.10: MPL-2.0
+- xmlresolver: Apache-2.0
+- SchXslt2: MIT
+- Downloaded rule sets keep their publishers' licenses (listed in **UBL: Show Business Rules** and `rules/catalog.json`).
 
 See `validation-artifacts/README.md` for details.

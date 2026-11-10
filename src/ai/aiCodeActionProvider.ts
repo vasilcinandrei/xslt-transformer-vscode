@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 
-const AI_FIX_SOURCES = new Set(['ubl-xsd', 'ubl-en16931', 'ubl-peppol']);
 
 export class AiFixCodeActionProvider implements vscode.CodeActionProvider {
     public static readonly providedCodeActionKinds = [
@@ -15,7 +14,7 @@ export class AiFixCodeActionProvider implements vscode.CodeActionProvider {
         const actions: vscode.CodeAction[] = [];
 
         for (const diagnostic of context.diagnostics) {
-            if (!diagnostic.source || !AI_FIX_SOURCES.has(diagnostic.source)) {
+            if (!diagnostic.source?.startsWith('ubl-')) {
                 continue;
             }
 

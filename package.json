@@ -1,8 +1,8 @@
 {
   "name": "xslt-transformer",
   "displayName": "UBL Validator",
-  "description": "Transform XML with XSLT and validate UBL 2.1 documents (XSD + EN16931 + Peppol BIS 3.0). Only requires Java — everything else is bundled.",
-  "version": "2.0.1",
+  "description": "Transform XML with XSLT 1.0\u20133.0 (Saxon-HE) and validate UBL 2.1 documents against XSD, EN16931 and Peppol BIS 3.0 \u2014 with errors traced back to the XSLT line that caused them. Only requires Java 11+.",
+  "version": "2.1.0",
   "publisher": "AndreiVasilcin",
   "author": {
     "name": "Andrei Vasilcin"
@@ -29,22 +29,41 @@
     "xsd"
   ],
   "engines": {
-    "vscode": "^1.74.0"
+    "vscode": "^1.90.0"
   },
   "categories": [
     "Linters",
-    "Formatters"
+    "Programming Languages",
+    "Other"
   ],
   "activationEvents": [
-    "onStartupFinished"
+    "onLanguage:xml",
+    "onLanguage:xsl",
+    "workspaceContains:.ublproject.json"
   ],
-  "main": "./out/extension.js",
+  "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
         "command": "xslt-transformer.transform",
         "title": "XSLT: Transform XML",
         "icon": "$(symbol-misc)"
+      },
+      {
+        "command": "xslt-transformer.startWatch",
+        "title": "XSLT: Start Watch Mode"
+      },
+      {
+        "command": "xslt-transformer.stopWatch",
+        "title": "XSLT: Stop Watch Mode"
+      },
+      {
+        "command": "xslt-transformer.showMapping",
+        "title": "XSLT: Show XSLT-to-Output Mapping"
+      },
+      {
+        "command": "xslt-transformer.initConfig",
+        "title": "XSLT: Create Project Config (.ublproject.json)"
       },
       {
         "command": "xslt-transformer.validateUbl",
@@ -64,93 +83,247 @@
         "title": "UBL: Fix All Errors with AI"
       },
       {
+        "command": "xslt-transformer.aiSelectProvider",
+        "title": "UBL: Select AI Provider"
+      },
+      {
         "command": "xslt-transformer.aiSetApiKey",
         "title": "UBL: Set AI API Key"
+      },
+      {
+        "command": "xslt-transformer.showRules",
+        "title": "UBL: Show Business Rules (which rules apply and why)"
+      },
+      {
+        "command": "xslt-transformer.updateRules",
+        "title": "UBL: Update Business Rules"
+      },
+      {
+        "command": "xslt-transformer.downloadAllRules",
+        "title": "UBL: Download All Business Rules (for offline use)"
+      },
+      {
+        "command": "xslt-transformer.showInfo",
+        "title": "UBL: Show Validator Info (Java, Saxon, rule versions)"
       }
     ],
     "menus": {
       "editor/title": [
         {
           "command": "xslt-transformer.transform",
-          "group": "navigation"
+          "group": "navigation",
+          "when": "resourceLangId == xsl || resourceExtname =~ /\\.(xsl|xslt)$/i"
         },
         {
           "command": "xslt-transformer.validateUbl",
-          "group": "navigation"
+          "group": "navigation",
+          "when": "resourceLangId == xml"
         }
       ],
       "commandPalette": [
         {
-          "command": "xslt-transformer.transform"
+          "command": "xslt-transformer.stopWatch",
+          "when": "false"
         },
         {
-          "command": "xslt-transformer.validateUbl"
+          "command": "xslt-transformer.validateUbl",
+          "when": "editorLangId == xml"
         },
         {
-          "command": "xslt-transformer.validateUblXsd"
+          "command": "xslt-transformer.validateUblXsd",
+          "when": "editorLangId == xml"
         },
         {
-          "command": "xslt-transformer.validateUblBusinessRules"
-        },
-        {
-          "command": "xslt-transformer.aiFixAll"
-        },
-        {
-          "command": "xslt-transformer.aiSetApiKey"
+          "command": "xslt-transformer.validateUblBusinessRules",
+          "when": "editorLangId == xml"
         }
       ]
     },
-    "configuration": {
-      "title": "UBL Validator AI",
-      "properties": {
-        "ublValidator.ai.provider": {
-          "type": "string",
-          "enum": [
-            "gemini",
-            "groq",
-            "anthropic",
-            "openai"
-          ],
-          "default": "gemini",
-          "description": "AI provider to use for fix suggestions. Gemini and Groq are free, Anthropic and OpenAI are paid."
-        },
-        "ublValidator.ai.model": {
-          "type": "string",
-          "default": "",
-          "description": "Model to use (leave empty for provider default: gemini-2.0-flash for Gemini, llama-3.3-70b-versatile for Groq, claude-sonnet-4-20250514 for Anthropic, gpt-4o for OpenAI)."
-        },
-        "ublValidator.ai.maxRetries": {
-          "type": "number",
-          "default": 3,
-          "minimum": 1,
-          "maximum": 10,
-          "description": "Maximum number of retry attempts if a fix does not resolve the error."
+    "configuration": [
+      {
+        "title": "UBL Validator",
+        "properties": {
+          "ublValidator.validateOnSave": {
+            "type": "boolean",
+            "default": true,
+            "description": "Validate UBL documents automatically when they are saved. Only files whose root element is a UBL document are validated."
+          },
+          "ublValidator.rules.source": {
+            "type": "string",
+            "enum": [
+              "latest",
+              "bundled"
+            ],
+            "enumDescriptions": [
+              "Download the latest official rules for each document (cached; bundled rules are used when offline)",
+              "Only use the EN16931 and Peppol rules bundled with the extension; never download"
+            ],
+            "default": "latest",
+            "markdownDescription": "Where business rules come from. With `latest`, the rules matching each document (EN16931, Peppol BIS, XRechnung, NLCIUS, France CTC, RO_CIUS, HR CIUS, Peppol PINT, ...) are downloaded from their official publishers and kept up to date."
+          },
+          "ublValidator.rules.disabled": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "markdownDescription": "Rule packs never to run, by id (e.g. `peppol-bis`, `en16931`, `fr-ctc`). Run **UBL: Show Business Rules** to see all ids."
+          },
+          "ublValidator.rules.autoUpdate": {
+            "type": "boolean",
+            "default": true,
+            "description": "Check downloaded rule packs for new versions once a day (in the background)."
+          },
+          "ublValidator.rules.catalogUrl": {
+            "type": "string",
+            "default": "https://raw.githubusercontent.com/vasilcinandrei/xslt-transformer-vscode/main/rules/catalog.json",
+            "markdownDescription": "Rules catalog fetched daily to pick up new countries and changed download locations without an extension update. Leave empty to use only the catalog bundled with the extension.",
+            "scope": "machine"
+          },
+          "ublValidator.rules.allowedHosts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "markdownDescription": "Extra host names rule packs may be downloaded from, in addition to the official publishers (GitHub, docs.peppol.eu, mfinante.gov.ro, porezna.gov.hr).",
+            "scope": "machine"
+          },
+          "ublValidator.rules.customSchematron": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "markdownDescription": "Additional **compiled** Schematron rule files (XSLT producing SVRL) to run on every UBL document, e.g. XRechnung or other national CIUS rules. Relative paths are resolved against the first workspace folder.",
+            "scope": "machine"
+          },
+          "ublValidator.artifactsPath": {
+            "type": "string",
+            "default": "",
+            "markdownDescription": "Folder with replacement UBL XSD schemas and offline rules, using the same layout as the bundled `validation-artifacts` folder. Usually not needed: with `ublValidator.rules.source` set to `latest`, current rules are downloaded automatically.",
+            "scope": "machine"
+          },
+          "ublValidator.javaPath": {
+            "type": "string",
+            "default": "",
+            "description": "Path to the Java executable (Java 11 or newer). Leave empty to use \"java\" from PATH.",
+            "scope": "machine"
+          },
+          "ublValidator.transformTimeoutSeconds": {
+            "type": "number",
+            "default": 120,
+            "minimum": 5,
+            "description": "Stop a transform or validation that runs longer than this (e.g. a stylesheet stuck in an endless recursion)."
+          },
+          "ublValidator.rules.allowedRepos": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "scope": "machine",
+            "markdownDescription": "Extra GitHub repositories (`owner/name`) the remote rules catalog may download from, in addition to the publishers in the bundled catalog."
+          }
+        }
+      },
+      {
+        "title": "UBL Validator AI",
+        "properties": {
+          "ublValidator.ai.provider": {
+            "type": "string",
+            "enum": [
+              "gemini",
+              "groq",
+              "anthropic",
+              "openai"
+            ],
+            "enumDescriptions": [
+              "Google Gemini (free tier available)",
+              "Groq (free tier available)",
+              "Anthropic Claude (paid)",
+              "OpenAI (paid)"
+            ],
+            "default": "gemini",
+            "description": "AI provider used for fix suggestions."
+          },
+          "ublValidator.ai.model": {
+            "type": "string",
+            "default": "",
+            "markdownDescription": "Model for the selected provider. Leave empty for the default: `gemini-2.5-flash` (Gemini), `llama-3.3-70b-versatile` (Groq), `claude-opus-5-5` (Anthropic), `gpt-5` (OpenAI)."
+          },
+          "ublValidator.ai.maxRetries": {
+            "type": "number",
+            "default": 3,
+            "minimum": 1,
+            "maximum": 10,
+            "description": "Maximum attempts per error when a fix does not resolve it."
+          },
+          "ublValidator.ai.timeoutSeconds": {
+            "type": "number",
+            "default": 180,
+            "minimum": 10,
+            "maximum": 1800,
+            "description": "Timeout for a single AI request."
+          },
+          "ublValidator.ai.includeInputXml": {
+            "type": "boolean",
+            "default": true,
+            "description": "Send the input XML to the AI provider for context. Turn off if input files contain data that must not leave your machine."
+          },
+          "ublValidator.ai.maxInputXmlChars": {
+            "type": "number",
+            "default": 50000,
+            "minimum": 1000,
+            "description": "Maximum characters of input XML sent to the AI provider; longer files are cut off (the model is told so)."
+          }
         }
       }
-    },
+    ],
     "keybindings": [
       {
         "command": "xslt-transformer.validateUbl",
         "key": "ctrl+shift+v",
         "mac": "cmd+shift+v",
-        "when": "editorTextFocus"
+        "when": "editorTextFocus && editorLangId == xml"
+      }
+    ],
+    "jsonValidation": [
+      {
+        "fileMatch": ".ublproject.json",
+        "url": "./schemas/ublproject.schema.json"
+      },
+      {
+        "fileMatch": "rules/catalog.json",
+        "url": "./schemas/rules-catalog.schema.json"
       }
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile:java && npm run compile",
+    "vscode:prepublish": "npm run compile:java && npm run bundle -- --minify",
+    "bundle": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --target=node20 --sourcemap",
     "compile": "tsc -p ./",
-    "compile:java": "javac -source 8 -target 8 -d lib/classes java/XsdValidator.java",
-    "watch": "tsc -watch -p ./",
+    "compile:java": "node scripts/compile-java.js",
+    "watch": "npm run bundle -- --watch",
     "pretest": "npm run compile",
-    "lint": "eslint src --ext ts"
+    "test": "node --require ./out/test/setup.js --test \"out/test/*.test.js\"",
+    "lint": "eslint src --ext ts",
+    "package": "vsce package",
+    "test:e2e": "npm run compile && npm run bundle && node out/e2e/runTest.js",
+    "verify:rules": "npm run compile && node scripts/verify-rules.js"
   },
   "devDependencies": {
-    "@types/node": "^18.x",
-    "@types/vscode": "^1.74.0",
+    "@types/node": "^20.0.0",
+    "@types/vscode": "~1.90.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
+    "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^4.1.0",
+    "esbuild": "^0.28.2",
     "eslint": "^8.0.0",
     "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.7.0"
   }
 }

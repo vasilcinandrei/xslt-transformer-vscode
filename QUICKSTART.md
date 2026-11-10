@@ -1,67 +1,58 @@
-# Quick Start Guide
+# Development guide
 
-## Testing the Extension
+## Setup
 
-1. **Open the project in VS Code**
-   ```bash
-   cd xslt-transformer-vscode
-   code .
-   ```
+Requires Node.js 20+ and a JDK 11+.
 
-2. **Start the Extension Development Host**
-   - Press `F5` (or go to Run > Start Debugging)
-   - A new VS Code window will open with the extension loaded
+```bash
+npm install
+npm run compile:java   # builds lib/classes/UblHelper*.class against the bundled Saxon-HE
+npm run bundle         # esbuild → dist/extension.js
+```
 
-3. **Test with Sample Files**
-   - In the Extension Development Host window, open the `examples/sample.xml` file
-   - Click the transformation button in the editor title bar (top right corner)
-   - When prompted, select `examples/sample.xml` as the input XML
-   - When prompted, select `examples/sample.xsl` as the XSL file
-   - Choose "Show in Editor" to see the transformed HTML output
+Press `F5` in VS Code to start an Extension Development Host. The default build task bundles first.
 
-## How to Use the Button
+## Layout
 
-The button is **always available** in the top-right corner of the editor:
-- Look for the icon in the editor title bar
-- Click it anytime to start the transformation process
-- Works in any folder, with any file open
+| Path | Purpose |
+|---|---|
+| `java/UblHelper.java` | Long-lived Java helper: Saxon transforms and XSD validation over a stdin/stdout line protocol |
+| `src/utils/javaRunner.ts` | Starts and talks to the helper |
+| `src/tracing/` | Stylesheet instrumentation (trace attributes), output parsing, error → XSLT mapping |
+| `src/validation/` | UBL detection, XSD/Schematron validation, diagnostics, validate-on-save |
+| `src/pipeline/transformAndValidate.ts` | Transform + validate, shared by all commands |
+| `src/ai/` | AI fix agent (prompting, LLM clients, diff/apply/verify loop) |
+| `src/watch/`, `src/webview/` | Watch mode and the mapping view |
+| `validation-artifacts/` | Bundled UBL XSD and compiled EN16931/Peppol Schematron |
+| `examples/ubl/` | XSLT 2.0 mapping with an include that produces a valid Peppol invoice |
 
-## Alternative: Command Palette
+## Checks
 
-1. Press `Cmd+Shift+P` (Mac) or `Ctrl+Shift+P` (Windows/Linux)
-2. Type: `XSLT: Transform XML`
-3. Press Enter
-4. Follow the file selection prompts
+```bash
+npm run lint
+npm test           # unit tests + integration tests against the real Java helper
+npm run test:e2e   # downloads VS Code into .vscode-test/ and runs the extension in it
+```
 
-## Installing the Extension Permanently
+## Business rule catalog
 
-Once you're happy with the extension:
+`rules/catalog.json` lists every rule set: how to recognise documents it applies to (`match`), where to download the latest version (`source`), and which files to run (`entries`). Installed extensions refresh this file daily from the `main` branch, so a merged change reaches users without a release. The schema is in `schemas/rules-catalog.schema.json`.
 
-1. **Package it**
-   ```bash
-   npm install -g @vscode/vsce
-   vsce package
-   ```
+After editing the catalog, check that every source still downloads and compiles:
 
-2. **Install the .vsix file**
-   - In VS Code, go to Extensions view (`Cmd+Shift+X` / `Ctrl+Shift+X`)
-   - Click the "..." menu at the top
-   - Select "Install from VSIX..."
-   - Choose the generated `.vsix` file
+```bash
+npm run verify:rules            # all packs
+npm run verify:rules -- xrechnung ro-cius
+```
 
-## Troubleshooting
+The *Check business rule sources* workflow does the same every Monday.
 
-- **Button doesn't appear**: Make sure you have an XML, XSL, or XSLT file open
-- **Transformation fails**: Check that your XSL file is valid XSLT
-- **No output**: Check the Developer Console (Help > Toggle Developer Tools) for errors
+## Updating validation artifacts
 
-## What the Extension Does
+`scripts/download-artifacts.sh` downloads the UBL schemas, EN16931 and Peppol rules (and Saxon, with checksum verification). Update `validation-artifacts/versions.json` and the table in the README when the rule versions change.
 
-1. Shows file picker for XML input
-2. Shows file picker for XSL/XSLT stylesheet
-3. Performs the transformation using Saxon-JS (XSLT 3.0 processor)
-4. Lets you either:
-   - View the result in a new editor tab
-   - Save it to a file
+## Packaging
 
-Enjoy transforming!
+```bash
+npm run package    # runs vscode:prepublish (Java + minified bundle), then vsce package
+```

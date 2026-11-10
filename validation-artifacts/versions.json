@@ -1,0 +1,16 @@
+{
+  "ubl": {
+    "label": "OASIS UBL 2.1 XSD",
+    "version": "2.1"
+  },
+  "en16931": {
+    "label": "CEN EN16931 UBL Schematron",
+    "version": "1.3.17",
+    "released": "2026-10-12"
+  },
+  "peppol-bis": {
+    "label": "Peppol BIS Billing 3.0 Schematron",
+    "version": "3.0.22",
+    "released": "2026-11-04"
+  }
+}

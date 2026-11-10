@@ -1,0 +1,78 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "UBL Validator business rules catalog",
+  "type": "object",
+  "required": ["version", "packs"],
+  "properties": {
+    "version": { "const": 1 },
+    "updated": { "type": "string" },
+    "packs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label", "documentTypes", "match", "source", "entries"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+          "label": { "type": "string" },
+          "country": { "type": "string" },
+          "description": { "type": "string" },
+          "generic": { "type": "boolean", "description": "Base rules used as fallback when nothing more specific matches." },
+          "documentTypes": { "type": "array", "items": { "type": "string" }, "description": "UBL root element names, or *." },
+          "match": {
+            "type": "array",
+            "description": "The pack applies if any rule matches; all conditions within a rule must hold.",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "customizationId": { "$ref": "#/definitions/stringMatch" },
+                "profileId": { "$ref": "#/definitions/stringMatch" },
+                "sellerCountry": { "type": "array", "items": { "type": "string", "pattern": "^[A-Z]{2}$" } },
+                "buyerCountry": { "type": "array", "items": { "type": "string", "pattern": "^[A-Z]{2}$" } }
+              }
+            }
+          },
+          "requires": { "type": "array", "items": { "type": "string" } },
+          "replaces": { "type": "array", "items": { "type": "string" } },
+          "source": {
+            "oneOf": [
+              { "type": "object", "required": ["type", "repo", "asset"], "properties": { "type": { "const": "github-release-asset" }, "repo": { "type": "string" }, "asset": { "type": "string" } } },
+              { "type": "object", "required": ["type", "repo"], "properties": { "type": { "const": "github-release-archive" }, "repo": { "type": "string" } } },
+              { "type": "object", "required": ["type", "url"], "properties": { "type": { "const": "url" }, "url": { "type": "string", "format": "uri" } } },
+              { "type": "object", "required": ["type", "page", "link"], "properties": { "type": { "const": "html-link" }, "page": { "type": "string" }, "link": { "type": "string" }, "pick": { "enum": ["max-version", "first"] }, "browserUserAgent": { "type": "boolean" } } }
+            ]
+          },
+          "entries": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["path", "format"],
+                "properties": {
+                  "path": { "type": "string", "description": "Path inside the download; * = one folder, ** = any folders." },
+                  "format": { "enum": ["xslt", "sch"] }
+                }
+              }
+            }
+          },
+          "bundled": { "type": "object", "additionalProperties": { "type": "array", "items": { "type": "string" } } },
+          "license": { "type": "string" },
+          "homepage": { "type": "string" }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "stringMatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "equals": { "type": "string" },
+        "startsWith": { "type": "string" },
+        "contains": { "type": "string" },
+        "regex": { "type": "string" }
+      }
+    }
+  }
+}
