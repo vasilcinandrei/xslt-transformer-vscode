@@ -1,5 +1,6 @@
 import { TraceEntry } from './xsltTracer';
 import { ValidationIssue } from '../validation/types';
+import { isUblRootElement } from '../validation/documentDetector';
 
 export interface TracedIssue extends ValidationIssue {
     xsltSourceFile?: string;
@@ -159,7 +160,7 @@ function traceMatchesElement(entry: TraceEntry, elementName: string): boolean {
  * Find the 1-indexed line number where an element appears in the output XML.
  */
 function findElementLineInOutput(elementName: string, outputLines: string[]): number | null {
-    const regex = new RegExp(`<(?:[a-zA-Z0-9_-]+:)?${escapeRegex(elementName)}[\\s>\/]`);
+    const regex = new RegExp(`<(?:[a-zA-Z0-9_-]+:)?${escapeRegex(elementName)}[\\s>/]`);
     for (let i = 0; i < outputLines.length; i++) {
         if (regex.test(outputLines[i])) {
             return i + 1;
@@ -171,9 +172,6 @@ function findElementLineInOutput(elementName: string, outputLines: string[]): nu
 function escapeRegex(s: string): string {
     return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
-
-const ROOT_ELEMENTS = new Set(['Invoice', 'CreditNote', 'DebitNote', 'Order', 'OrderResponse',
-    'DespatchAdvice', 'ReceiptAdvice', 'Catalogue', 'ApplicationResponse']);
 
 /**
  * Maps validation issues to:
@@ -196,8 +194,17 @@ export function mapIssuesToXsltSource(
         const traced: TracedIssue = { ...issue };
         const errorElements = extractErrorElementNames(issue.message, issue.ruleId);
 
+        // Most precise: a trace on the exact line the validator reported
+        // (trace attributes sit on each element's start-tag line)
+        const exact = sorted.find(e =>
+            e.outputLine === issue.line && !isUblRootElement(localName(e.elementName)));
+        if (exact) {
+            linkTrace(traced, exact);
+            return traced;
+        }
+
         // Filter out root-level document type names
-        const specificElements = errorElements.filter(n => !ROOT_ELEMENTS.has(n));
+        const specificElements = errorElements.filter(n => !isUblRootElement(n));
 
         if (specificElements.length === 0) {
             // No specific elements found — keep original position, try nearest trace
@@ -212,9 +219,7 @@ export function mapIssuesToXsltSource(
             const match = sorted.find(e => traceMatchesElement(e, elementName));
             if (match) {
                 traced.line = match.outputLine;
-                traced.xsltSourceFile = match.sourceFile;
-                traced.xsltSourceLine = match.sourceLine;
-                traced.xsltElementName = match.elementName;
+                linkTrace(traced, match);
                 return traced;
             }
         }
@@ -254,8 +259,17 @@ function linkNearestTraceAt(traced: TracedIssue, sorted: TraceEntry[], line: num
         }
     }
     if (nearest) {
-        traced.xsltSourceFile = nearest.sourceFile;
-        traced.xsltSourceLine = nearest.sourceLine;
-        traced.xsltElementName = nearest.elementName;
+        linkTrace(traced, nearest);
     }
+}
+
+function linkTrace(traced: TracedIssue, entry: TraceEntry): void {
+    traced.xsltSourceFile = entry.sourceFile;
+    traced.xsltSourceLine = entry.sourceLine;
+    traced.xsltElementName = entry.elementName;
+}
+
+function localName(name: string): string {
+    const i = name.indexOf(':');
+    return i >= 0 ? name.slice(i + 1) : name;
 }

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<order>
+    <number>INV-1001</number>
+    <date>2026-11-01</date>
+    <dueDate>2026-12-01</dueDate>
+    <currency>EUR</currency>
+    <buyerReference>PO-77</buyerReference>
+    <seller>
+        <name>Seller BV</name>
+        <endpoint scheme="0106">12345678</endpoint>
+        <vat>NL123456789B01</vat>
+        <street>Hoofdstraat 1</street>
+        <city>Amsterdam</city>
+        <zip>1011AA</zip>
+        <country>NL</country>
+        <iban>NL91ABNA0417164300</iban>
+    </seller>
+    <buyer>
+        <name>Buyer GmbH</name>
+        <endpoint scheme="9930">DE123456789</endpoint>
+        <street>Hauptstrasse 5</street>
+        <city>Berlin</city>
+        <zip>10115</zip>
+        <country>DE</country>
+    </buyer>
+    <lines>
+        <line>
+            <description>Widget</description>
+            <quantity>2</quantity>
+            <unitPrice>50.00</unitPrice>
+            <vatRate>21</vatRate>
+        </line>
+        <line>
+            <description>Gadget</description>
+            <quantity>1</quantity>
+            <unitPrice>30.00</unitPrice>
+            <vatRate>21</vatRate>
+        </line>
+    </lines>
+</order>

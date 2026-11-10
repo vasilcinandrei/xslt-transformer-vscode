@@ -1,5 +1,5 @@
-import * as fs from 'fs';
 import { UblDocumentInfo } from './types';
+import { scanStartTags } from '../tracing/xmlTokenizer';
 
 const UBL_21_NS = 'urn:oasis:names:specification:ubl:schema:xsd:';
 
@@ -84,23 +84,31 @@ const UBL_DOCUMENT_TYPES: Record<string, string> = {
 
 const INVOICE_OR_CREDIT_NOTE = new Set(['Invoice', 'CreditNote']);
 
-export function detectUblDocumentFromContent(content: string): UblDocumentInfo | null {
-    // Look at the first 2000 chars for the root element
-    const head = content.substring(0, 2000);
+export function isUblRootElement(localName: string): boolean {
+    return Object.prototype.hasOwnProperty.call(UBL_DOCUMENT_TYPES, localName);
+}
 
-    // Match root element with optional namespace prefix
-    const rootMatch = head.match(/<(?:([a-zA-Z0-9_-]+):)?([a-zA-Z]+)\s/);
-    if (!rootMatch) {
+/**
+ * Detects a UBL 2.x document from its root element: the local name must be a
+ * UBL document type and its namespace must be the matching UBL namespace.
+ */
+export function detectUblDocumentFromContent(content: string): UblDocumentInfo | null {
+    // The root start tag is near the top; don't scan huge documents in full
+    const root = scanStartTags(content.substring(0, 64 * 1024))[0];
+    if (!root) {
         return null;
     }
 
-    const rootElement = rootMatch[2];
+    const rootElement = root.localName;
     const xsdName = UBL_DOCUMENT_TYPES[rootElement];
     if (!xsdName) {
         return null;
     }
 
     const namespace = `${UBL_21_NS}${rootElement}-2`;
+    if (root.namespace !== namespace) {
+        return null;
+    }
 
     return {
         rootElement,
@@ -108,9 +116,4 @@ export function detectUblDocumentFromContent(content: string): UblDocumentInfo |
         documentType: xsdName,
         isInvoiceOrCreditNote: INVOICE_OR_CREDIT_NOTE.has(rootElement),
     };
-}
-
-export function detectUblDocument(filePath: string): UblDocumentInfo | null {
-    const content = fs.readFileSync(filePath, 'utf8');
-    return detectUblDocumentFromContent(content);
 }

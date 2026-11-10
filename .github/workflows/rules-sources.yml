@@ -1,0 +1,29 @@
+name: Check business rule sources
+
+# Downloads and compiles every rule pack from its official publisher, so a
+# changed download location or archive layout is noticed before users are.
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - rules/catalog.json
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - run: npm ci
+      - run: npm run compile:java
+      - run: npm run compile
+      - run: node scripts/verify-rules.js

@@ -1,6 +1,5 @@
-import * as fs from 'fs';
 import * as vscode from 'vscode';
-import { ValidationIssue } from './types';
+import { IssueSource, ValidationIssue } from './types';
 
 interface SvrlAssertion {
     id: string;
@@ -17,18 +16,8 @@ interface XPathSegment {
 export function parseSvrlOutputFromContent(
     svrlXml: string,
     sourceContent: string,
-    source: 'en16931' | 'peppol'
+    source: IssueSource
 ): ValidationIssue[] {
-    const sourceLines = sourceContent.split(/\r?\n/);
-    return parseSvrlWithLines(svrlXml, sourceLines, source);
-}
-
-export function parseSvrlOutput(
-    svrlXml: string,
-    sourceFilePath: string,
-    source: 'en16931' | 'peppol'
-): ValidationIssue[] {
-    const sourceContent = fs.readFileSync(sourceFilePath, 'utf8');
     const sourceLines = sourceContent.split(/\r?\n/);
     return parseSvrlWithLines(svrlXml, sourceLines, source);
 }
@@ -36,7 +25,7 @@ export function parseSvrlOutput(
 function parseSvrlWithLines(
     svrlXml: string,
     sourceLines: string[],
-    source: 'en16931' | 'peppol'
+    source: IssueSource
 ): ValidationIssue[] {
 
     const issues: ValidationIssue[] = [];
@@ -86,7 +75,7 @@ function parseAssertionBlock(block: string): SvrlAssertion | null {
 function assertionToIssue(
     assertion: SvrlAssertion,
     sourceLines: string[],
-    source: 'en16931' | 'peppol'
+    source: IssueSource
 ): ValidationIssue {
     const line = resolveLineFromXPath(assertion.location, sourceLines);
     const severity = mapFlagToSeverity(assertion.flag);
@@ -118,25 +107,26 @@ function mapFlagToSeverity(flag: string): vscode.DiagnosticSeverity {
 }
 
 /**
- * Parse an SVRL XPath location into structured segments.
- * XPaths look like: /*:Invoice[1]/*:AccountingSupplierParty[1]/*:Party[1]/*:PartyName[1]/*:Name[1]
- * or: /Invoice/AccountingSupplierParty[1]/Party[1]/PartyName[1]/Name[1]
+ * Parse an SVRL XPath location into structured segments. Handles the forms
+ * produced by the common Schematron compilers:
+ *   /*:Invoice[namespace-uri()='urn:...'][1]/*:InvoiceLine[namespace-uri()='urn:...'][2]  (ISO skeleton)
+ *   /Q{urn:...}Invoice[1]/Q{urn:...}InvoiceLine[2]                                       (SchXslt)
+ *   /Invoice/cac:AccountingSupplierParty[1]/cac:Party[1]
  */
-function parseXPathSegments(xpath: string): XPathSegment[] {
-    const parts = xpath.split('/').filter(s => s.length > 0);
+export function parseXPathSegments(xpath: string): XPathSegment[] {
+    const cleaned = xpath
+        .replace(/Q\{[^}]*\}/g, '')
+        .replace(/\[\s*namespace-uri\(\)\s*=\s*(['"])[^'"]*\1\s*\]/g, '');
     const segments: XPathSegment[] = [];
-
-    for (const part of parts) {
-        // Match patterns like: *:ElementName[2], cac:ElementName[1], ElementName, *:ElementName
-        const m = part.match(/(?:[a-zA-Z0-9_*-]+:)?([a-zA-Z][a-zA-Z0-9_-]*)\[?(\d+)?\]?/);
+    for (const part of cleaned.split('/')) {
+        if (!part || part.startsWith('@')) {
+            continue;
+        }
+        const m = part.match(/^(?:[\w*.-]+:)?([A-Za-z_][\w.-]*)(?:\[(\d+)\])?/);
         if (m) {
-            segments.push({
-                elementName: m[1],
-                index: m[2] ? parseInt(m[2], 10) : 1,
-            });
+            segments.push({ elementName: m[1], index: m[2] ? parseInt(m[2], 10) : 1 });
         }
     }
-
     return segments;
 }
 

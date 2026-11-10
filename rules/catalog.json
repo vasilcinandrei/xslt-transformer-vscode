@@ -1,0 +1,1127 @@
+{
+  "$schema": "../schemas/rules-catalog.schema.json",
+  "version": 1,
+  "updated": "2026-11-10",
+  "packs": [
+    {
+      "id": "en16931",
+      "label": "EN16931 (CEN core rules)",
+      "country": "EU",
+      "generic": true,
+      "description": "European e-invoicing core business rules. Base for most national CIUS.",
+      "documentTypes": [
+        "Invoice",
+        "CreditNote"
+      ],
+      "match": [
+        {
+          "customizationId": {
+            "startsWith": "urn:cen.eu:en16931:2017"
+          }
+        }
+      ],
+      "source": {
+        "type": "github-release-asset",
+        "repo": "ConnectingEurope/eInvoicing-EN16931",
+        "asset": "^en16931-ubl-.*\\.zip$"
+      },
+      "entries": {
+        "*": [
+          {
+            "path": "xslt/EN16931-UBL-validation.xslt",
+            "format": "xslt"
+          }
+        ]
+      },
+      "bundled": {
+        "*": [
+          "schematron/en16931/EN16931-UBL-validation.xslt"
+        ]
+      },
+      "license": "EUPL-1.2",
+      "homepage": "https://github.com/ConnectingEurope/eInvoicing-EN16931"
+    },
+    {
+      "id": "peppol-bis",
+      "label": "Peppol BIS Billing 3.0",
+      "country": "Peppol",
+      "description": "Peppol BIS Billing 3.0 with its own copy of the CEN rules. Includes national rules for NO, SE, DK, IT, NL, DE, GR, IS and SK, which switch on based on the seller's country.",
+      "documentTypes": [
+        "Invoice",
+        "CreditNote"
+      ],
+      "match": [
+        {
+          "customizationId": {
+            "startsWith": "urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0"
+          }
+        }
+      ],
+      "replaces": [
+        "en16931"
+      ],
+      "source": {
+        "type": "github-release-archive",
+        "repo": "OpenPEPPOL/peppol-bis-invoice-3"
+      },
+      "entries": {
+        "*": [
+          {
+            "path": "*/rules/sch/CEN-EN16931-UBL.sch",
+            "format": "sch"
+          },
+          {
+            "path": "*/rules/sch/PEPPOL-EN16931-UBL.sch",
+            "format": "sch"
+          }
+        ]
+      },
+      "bundled": {
+        "*": [
+          "schematron/peppol/CEN-EN16931-UBL.xslt",
+          "schematron/peppol/PEPPOL-EN16931-UBL.xslt"
+        ]
+      },
+      "homepage": "https://docs.peppol.eu/poacc/billing/3.0/"
+    },
+    {
+      "id": "xrechnung",
+      "label": "XRechnung 3.0",
+      "country": "DE",
+      "description": "German CIUS and extension (KoSIT). Runs together with the EN16931 rules.",
+      "documentTypes": [
+        "Invoice",
+        "CreditNote"
+      ],
+      "match": [
+        {
+          "customizationId": {
+            "contains": "urn:xeinkauf.de:kosit:xrechnung_3.0"
+          }
+        }
+      ],
+      "requires": [
+        "en16931"
+      ],
+      "source": {
+        "type": "github-release-asset",
+        "repo": "itplr-kosit/xrechnung-schematron",
+        "asset": "^xrechnung-.*-schematron-.*\\.zip$"
+      },
+      "entries": {
+        "*": [
+          {
+            "path": "schematron/ubl/XRechnung-UBL-validation.xsl",
+            "format": "xslt"
+          }
+        ]
+      },
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/itplr-kosit/xrechnung-schematron"
+    },
+    {
+      "id": "nlcius",
+      "label": "NLCIUS / SI-UBL 2.0",
+      "country": "NL",
+      "description": "Dutch CIUS (Simplerinvoicing). Includes the CEN rules.",
+      "documentTypes": [
+        "Invoice",
+        "CreditNote"
+      ],
+      "match": [
+        {
+          "customizationId": {
+            "contains": "urn:fdc:nen.nl:nlcius:v1.0"
+          }
+        }
+      ],
+      "replaces": [
+        "en16931"
+      ],
+      "source": {
+        "type": "github-release-archive",
+        "repo": "peppolautoriteit-nl/validation"
+      },
+      "entries": {
+        "*": [
+          {
+            "path": "*/xsl/si-ubl-2.0.xsl",
+            "format": "xslt"
+          }
+        ]
+      },
+      "license": "MIT",
+      "homepage": "https://github.com/peppolautoriteit-nl/validation"
+    },
+    {
+      "id": "nlcius-gaccount",
+      "label": "SI-UBL 2.0 G-account extension",
+      "country": "NL",
+      "documentTypes": [
+        "Invoice",
+        "CreditNote"
+      ],
+      "match": [
+        {
+          "customizationId": {
+            "contains": "urn:fdc:nen.nl:gaccount:v1.0"
+          }
+        }
+      ],
+      "replaces": [
+        "en16931",
+        "nlcius"
+      ],
+      "source": {
+        "type": "github-release-archive",
+        "repo": "peppolautoriteit-nl/validation"
+      },
+      "entries": {
+        "*": [
+          {
+            "path": "*/xsl/si-ubl-2.0-ext-gaccount.xsl",
+            "format": "xslt"
+          }
+        ]
+      },
+      "license": "MIT",
+      "homepage": "https://github.com/peppolautoriteit-nl/validation"
+    },
+    {
+      "id": "fr-ctc",
+      "label": "France e-invoicing reform (BR-FR)",
+      "country": "FR",
+      "description": "French business rules (AFNOR XP Z12-012, published by FNFE-MPE). Applied to French invoice profiles and to domestic FR\u2192FR invoices.",
+      "documentTypes": [
+        "Invoice",
+        "CreditNote"
+      ],
+      "match": [
+        {
+          "customizationId": {
+            "equals": "urn:cen.eu:en16931:2017"
+          },
+          "profileId": {
+            "regex": "^[SBM][0-9]+$"
+          }
+        },
+        {
+          "profileId": {
+            "startsWith": "urn:peppol:france:billing"
+          }
+        },
+        {
+          "customizationId": {
+            "startsWith": "urn:cen.eu:en16931:2017"
+          },
+          "sellerCountry": [
+            "FR"
+          ],
+          "buyerCountry": [
+            "FR"
+          ]
+        }
+      ],
+      "requires": [
+        "en16931"
+      ],
+      "source": {
+        "type": "github-release-archive",
+        "repo": "fnfempe/France_RFE"
+      },
+      "entries": {
+        "*": [
+          {
+            "path": "*/FNFE_RFE_INVOICE/UBL/EN16931/2xslt/BR-FR-Flux2-Schematron-UBL.xslt",
+            "format": "xslt"
+          }
+        ]
+      },
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/fnfempe/France_RFE"
+    },
+    {
+      "id": "fr-ctc-extended",
+      "label": "France EXTENDED-CTC-FR",
+      "country": "FR",
+      "documentTypes": [
+        "Invoice",
+        "CreditNote"
+      ],
+      "match": [
+        {
+          "customizationId": {
+            "contains": "extended-ctc-fr"
+          }
+        }
+      ],
+      "replaces": [
+        "en16931",
+        "fr-ctc"
+      ],
+      "source": {
+        "type": "github-release-archive",
+        "repo": "fnfempe/France_RFE"
+      },
+      "entries": {
+        "*": [
+          {
+            "path": "*/FNFE_RFE_INVOICE/UBL/EXTENDED-CTC-FR/2xslt/EXTENDED-CTC-FR-UBL.xslt",
+            "format": "xslt"
+          },
+          {
+            "path": "*/FNFE_RFE_INVOICE/UBL/EXTENDED-CTC-FR/2xslt/BR-FR-Flux2-Schematron-UBL.xslt",
+            "format": "xslt"
+          }
+        ]
+      },
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/fnfempe/France_RFE"
+    },
+    {
+      "id": "ro-cius",
+      "label": "RO_CIUS (e-Factura)",
+      "country": "RO",
+      "description": "Romanian CIUS published by ANAF / Ministry of Finance. Includes the CEN rules.",
+      "documentTypes": [
+        "Invoice",
+        "CreditNote"
+      ],
+      "match": [
+        {
+          "customizationId": {
+            "contains": "urn:efactura.mfinante.ro:CIUS-RO"
+          }
+        }
+      ],
+      "replaces": [
+        "en16931"
+      ],
+      "source": {
+        "type": "html-link",
+        "page": "https://mfinante.gov.ro/ro/web/efactura/informatii-tehnice",
+        "link": "href=\"(?<url>[^\"]*ro16931-ubl-(?<version>[0-9.]+)\\.zip)\"",
+        "pick": "max-version",
+        "browserUserAgent": true
+      },
+      "entries": {
+        "*": [
+          {
+            "path": "*/EN16931-CIUS_RO-UBL-validation.sch",
+            "format": "sch"
+          }
+        ]
+      },
+      "license": "EUPL-1.2",
+      "homepage": "https://mfinante.gov.ro/ro/web/efactura/informatii-tehnice"
+    },
+    {
+      "id": "hr-cius",
+      "label": "HR CIUS 2025 + extension (Fiskalizacija 2.0)",
+      "country": "HR",
+      "description": "Croatian CIUS and extension published by the Tax Administration. Runs together with the EN16931 rules.",
+      "documentTypes": [
+        "Invoice",
+        "CreditNote"
+      ],
+      "match": [
+        {
+          "customizationId": {
+            "contains": "urn:mfin.gov.hr:cius-2025"
+          }
+        }
+      ],
+      "requires": [
+        "en16931"
+      ],
+      "source": {
+        "type": "html-link",
+        "page": "https://porezna.gov.hr/fiskalizacija/bezgotovinski-racuni/eracun",
+        "link": "href=\"(?<url>[^\"]*/api/dokumenti/[0-9]+)\"(?:(?!href=)[\\s\\S]){0,2000}?>Validator[^<]*</h5>\\s*<small[^>]*>(?<version>[^<]+)</small>",
+        "pick": "first",
+        "browserUserAgent": true
+      },
+      "entries": {
+        "*": [
+          {
+            "path": "**/HR-CIUS-EXT-EN16931-UBL.sch",
+            "format": "sch"
+          }
+        ]
+      },
+      "homepage": "https://porezna.gov.hr/fiskalizacija/bezgotovinski-racuni/eracun"
+    },
+    {
+      "id": "pint",
+      "label": "Peppol PINT (international)",
+      "country": "Peppol",
+      "documentTypes": [
+        "Invoice",
+        "CreditNote"
+      ],
+      "match": [
+        {
+          "customizationId": {
+            "equals": "urn:peppol:pint:billing-1"
+          }
+        }
+      ],
+      "source": {
+        "type": "url",
+        "url": "https://docs.peppol.eu/poac/pint/pint/resources.zip"
+      },
+      "entries": {
+        "Invoice": [
+          {
+            "path": "trn-invoice/schematron/PINT-UBL-validation-preprocessed.xslt",
+            "format": "xslt"
+          }
+        ],
+        "CreditNote": [
+          {
+            "path": "trn-creditnote/schematron/PINT-UBL-validation-preprocessed.xslt",
+            "format": "xslt"
+          }
+        ]
+      },
+      "homepage": "https://docs.peppol.eu/poac/pint/pint/",
+      "description": "Peppol International invoice model without a jurisdiction specialization."
+    },
+    {
+      "id": "pint-aunz",
+      "label": "Peppol PINT A-NZ",
+      "country": "AU/NZ",
+      "documentTypes": [
+        "Invoice",
+        "CreditNote"
+      ],
+      "match": [
+        {
+          "customizationId": {
+            "startsWith": "urn:peppol:pint:billing-1@aunz-1"
+          }
+        }
+      ],
+      "source": {
+        "type": "url",
+        "url": "https://docs.peppol.eu/poac/aunz/pint-aunz/resources.zip"
+      },
+      "entries": {
+        "Invoice": [
+          {
+            "path": "trn-invoice/schematron/PINT-UBL-validation-preprocessed.xslt",
+            "format": "xslt"
+          },
+          {
+            "path": "trn-invoice/schematron/PINT-jurisdiction-aligned-rules.xslt",
+            "format": "xslt"
+          }
+        ],
+        "CreditNote": [
+          {
+            "path": "trn-creditnote/schematron/PINT-UBL-validation-preprocessed.xslt",
+            "format": "xslt"
+          },
+          {
+            "path": "trn-creditnote/schematron/PINT-jurisdiction-aligned-rules.xslt",
+            "format": "xslt"
+          }
+        ]
+      },
+      "homepage": "https://docs.peppol.eu/poac/aunz/pint-aunz/"
+    },
+    {
+      "id": "pint-aunz-sb",
+      "label": "Peppol PINT A-NZ self-billing",
+      "country": "AU/NZ",
+      "documentTypes": [
+        "Invoice",
+        "CreditNote"
+      ],
+      "match": [
+        {
+          "customizationId": {
+            "startsWith": "urn:peppol:pint:selfbilling-1@aunz-1"
+          }
+        }
+      ],
+      "source": {
+        "type": "url",
+        "url": "https://docs.peppol.eu/poac/aunz/pint-aunz-sb/resources.zip"
+      },
+      "entries": {
+        "Invoice": [
+          {
+            "path": "trn-invoice/schematron/PINT-UBL-validation-preprocessed.xslt",
+            "format": "xslt"
+          },
+          {
+            "path": "trn-invoice/schematron/PINT-jurisdiction-aligned-rules.xslt",
+            "format": "xslt"
+          }
+        ],
+        "CreditNote": [
+          {
+            "path": "trn-creditnote/schematron/PINT-UBL-validation-preprocessed.xslt",
+            "format": "xslt"
+          },
+          {
+            "path": "trn-creditnote/schematron/PINT-jurisdiction-aligned-rules.xslt",
+            "format": "xslt"
+          }
+        ]
+      },
+      "homepage": "https://docs.peppol.eu/poac/aunz/pint-aunz-sb/"
+    },
+    {
+      "id": "pint-jp",
+      "label": "Peppol PINT Japan",
+      "country": "JP",
+      "documentTypes": [
+        "Invoice"
+      ],
+      "match": [
+        {
+          "customizationId": {
+            "startsWith": "urn:peppol:pint:billing-1@jp-1"
+          }
+        }
+      ],
+      "source": {
+        "type": "url",
+        "url": "https://docs.peppol.eu/poac/jp/pint-jp/resources.zip"
+      },
+      "entries": {
+        "Invoice": [
+          {
+            "path": "trn-invoice/schematron/PINT-UBL-validation-preprocessed.xslt",
+            "format": "xslt"
+          },
+          {
+            "path": "trn-invoice/schematron/PINT-jurisdiction-aligned-rules.xslt",
+            "format": "xslt"
+          }
+        ]
+      },
+      "homepage": "https://docs.peppol.eu/poac/jp/pint-jp/",
+      "description": "Japan defines invoices only (no separate credit note transaction)."
+    },
+    {
+      "id": "pint-jp-sb",
+      "label": "Peppol PINT Japan self-billing",
+      "country": "JP",
+      "documentTypes": [
+        "Invoice"
+      ],
+      "match": [
+        {
+          "customizationId": {
+            "startsWith": "urn:peppol:pint:selfbilling-1@jp-1"
+          }
+        }
+      ],
+      "source": {
+        "type": "url",
+        "url": "https://docs.peppol.eu/poac/jp/pint-jp-sb/resources.zip"
+      },
+      "entries": {
+        "Invoice": [
+          {
+            "path": "trn-invoice/schematron/PINT-UBL-validation-preprocessed.xslt",
+            "format": "xslt"
+          },
+          {
+            "path": "trn-invoice/schematron/PINT-jurisdiction-aligned-rules.xslt",
+            "format": "xslt"
+          }
+        ]
+      },
+      "homepage": "https://docs.peppol.eu/poac/jp/pint-jp-sb/",
+      "description": "Japan defines invoices only (no separate credit note transaction)."
+    },
+    {
+      "id": "pint-jp-ntr",
+      "label": "Peppol PINT Japan non-tax invoice",
+      "country": "JP",
+      "documentTypes": [
+        "Invoice"
+      ],
+      "match": [
+        {
+          "customizationId": {
+            "startsWith": "urn:peppol:pint:nontaxinvoice-1@jp-1"
+          }
+        }
+      ],
+      "source": {
+        "type": "url",
+        "url": "https://docs.peppol.eu/poac/jp/pint-jp-ntr/resources.zip"
+      },
+      "entries": {
+        "Invoice": [
+          {
+            "path": "trn-invoice/schematron/PINT-UBL-validation-preprocessed.xslt",
+            "format": "xslt"
+          },
+          {
+            "path": "trn-invoice/schematron/PINT-jurisdiction-aligned-rules.xslt",
+            "format": "xslt"
+          }
+        ]
+      },
+      "homepage": "https://docs.peppol.eu/poac/jp/pint-jp-ntr/",
+      "description": "Japan defines invoices only (no separate credit note transaction)."
+    },
+    {
+      "id": "pint-sg",
+      "label": "Peppol PINT Singapore",
+      "country": "SG",
+      "documentTypes": [
+        "Invoice",
+        "CreditNote"
+      ],
+      "match": [
+        {
+          "customizationId": {
+            "startsWith": "urn:peppol:pint:billing-1@sg-1"
+          }
+        }
+      ],
+      "source": {
+        "type": "url",
+        "url": "https://docs.peppol.eu/poac/sg/pint-sg/resources.zip"
+      },
+      "entries": {
+        "Invoice": [
+          {
+            "path": "trn-invoice/schematron/PINT-UBL-validation-preprocessed.xslt",
+            "format": "xslt"
+          },
+          {
+            "path": "trn-invoice/schematron/PINT-jurisdiction-aligned-rules.xslt",
+            "format": "xslt"
+          }
+        ],
+        "CreditNote": [
+          {
+            "path": "trn-creditnote/schematron/PINT-UBL-validation-preprocessed.xslt",
+            "format": "xslt"
+          },
+          {
+            "path": "trn-creditnote/schematron/PINT-jurisdiction-aligned-rules.xslt",
+            "format": "xslt"
+          }
+        ]
+      },
+      "homepage": "https://docs.peppol.eu/poac/sg/pint-sg/"
+    },
+    {
+      "id": "pint-my",
+      "label": "Peppol PINT Malaysia",
+      "country": "MY",
+      "documentTypes": [
+        "Invoice",
+        "CreditNote"
+      ],
+      "match": [
+        {
+          "customizationId": {
+            "startsWith": "urn:peppol:pint:billing-1@my-1"
+          }
+        }
+      ],
+      "source": {
+        "type": "url",
+        "url": "https://docs.peppol.eu/poac/my/pint-my/resources.zip"
+      },
+      "entries": {
+        "Invoice": [
+          {
+            "path": "trn-invoice/schematron/PINT-UBL-validation-preprocessed.xslt",
+            "format": "xslt"
+          },
+          {
+            "path": "trn-invoice/schematron/PINT-jurisdiction-aligned-rules.xslt",
+            "format": "xslt"
+          }
+        ],
+        "CreditNote": [
+          {
+            "path": "trn-creditnote/schematron/PINT-UBL-validation-preprocessed.xslt",
+            "format": "xslt"
+          },
+          {
+            "path": "trn-creditnote/schematron/PINT-jurisdiction-aligned-rules.xslt",
+            "format": "xslt"
+          }
+        ]
+      },
+      "homepage": "https://docs.peppol.eu/poac/my/pint-my/"
+    },
+    {
+      "id": "pint-my-sb",
+      "label": "Peppol PINT Malaysia self-billing",
+      "country": "MY",
+      "documentTypes": [
+        "Invoice",
+        "CreditNote"
+      ],
+      "match": [
+        {
+          "customizationId": {
+            "startsWith": "urn:peppol:pint:selfbilling-1@my-1"
+          }
+        }
+      ],
+      "source": {
+        "type": "url",
+        "url": "https://docs.peppol.eu/poac/my/pint-my-sb/resources.zip"
+      },
+      "entries": {
+        "Invoice": [
+          {
+            "path": "trn-invoice/schematron/PINT-UBL-validation-preprocessed.xslt",
+            "format": "xslt"
+          },
+          {
+            "path": "trn-invoice/schematron/PINT-jurisdiction-aligned-rules.xslt",
+            "format": "xslt"
+          }
+        ],
+        "CreditNote": [
+          {
+            "path": "trn-creditnote/schematron/PINT-UBL-validation-preprocessed.xslt",
+            "format": "xslt"
+          },
+          {
+            "path": "trn-creditnote/schematron/PINT-jurisdiction-aligned-rules.xslt",
+            "format": "xslt"
+          }
+        ]
+      },
+      "homepage": "https://docs.peppol.eu/poac/my/pint-my-sb/"
+    },
+    {
+      "id": "pint-ae",
+      "label": "Peppol PINT UAE",
+      "country": "AE",
+      "documentTypes": [
+        "Invoice",
+        "CreditNote"
+      ],
+      "match": [
+        {
+          "customizationId": {
+            "startsWith": "urn:peppol:pint:billing-1@ae-1"
+          }
+        }
+      ],
+      "source": {
+        "type": "url",
+        "url": "https://docs.peppol.eu/poac/ae/pint-ae/resources.zip"
+      },
+      "entries": {
+        "Invoice": [
+          {
+            "path": "trn-invoice/schematron/PINT-UBL-validation-preprocessed.xslt",
+            "format": "xslt"
+          },
+          {
+            "path": "trn-invoice/schematron/PINT-jurisdiction-aligned-rules.xslt",
+            "format": "xslt"
+          }
+        ],
+        "CreditNote": [
+          {
+            "path": "trn-creditnote/schematron/PINT-UBL-validation-preprocessed.xslt",
+            "format": "xslt"
+          },
+          {
+            "path": "trn-creditnote/schematron/PINT-jurisdiction-aligned-rules.xslt",
+            "format": "xslt"
+          }
+        ]
+      },
+      "homepage": "https://docs.peppol.eu/poac/ae/pint-ae/"
+    },
+    {
+      "id": "pint-ae-sb",
+      "label": "Peppol PINT UAE self-billing",
+      "country": "AE",
+      "documentTypes": [
+        "Invoice",
+        "CreditNote"
+      ],
+      "match": [
+        {
+          "customizationId": {
+            "startsWith": "urn:peppol:pint:selfbilling-1@ae-1"
+          }
+        }
+      ],
+      "source": {
+        "type": "url",
+        "url": "https://docs.peppol.eu/poac/ae/pint-ae-sb/resources.zip"
+      },
+      "entries": {
+        "Invoice": [
+          {
+            "path": "trn-invoice/schematron/PINT-UBL-validation-preprocessed.xslt",
+            "format": "xslt"
+          },
+          {
+            "path": "trn-invoice/schematron/PINT-jurisdiction-aligned-rules.xslt",
+            "format": "xslt"
+          }
+        ],
+        "CreditNote": [
+          {
+            "path": "trn-creditnote/schematron/PINT-UBL-validation-preprocessed.xslt",
+            "format": "xslt"
+          },
+          {
+            "path": "trn-creditnote/schematron/PINT-jurisdiction-aligned-rules.xslt",
+            "format": "xslt"
+          }
+        ]
+      },
+      "homepage": "https://docs.peppol.eu/poac/ae/pint-ae-sb/"
+    },
+    {
+      "id": "peppol-order",
+      "label": "Peppol BIS Order (T01)",
+      "country": "Peppol",
+      "documentTypes": [
+        "Order"
+      ],
+      "match": [
+        {
+          "customizationId": {
+            "startsWith": "urn:fdc:peppol.eu:poacc:trns:order:3"
+          }
+        }
+      ],
+      "source": {
+        "type": "url",
+        "url": "https://docs.peppol.eu/poacc/upgrade-3/files/PEPPOLBIS-Upgrade-Schematron.zip"
+      },
+      "entries": {
+        "*": [
+          {
+            "path": "schematron/PEPPOLBIS-T01.sch",
+            "format": "sch"
+          }
+        ]
+      },
+      "homepage": "https://docs.peppol.eu/poacc/upgrade-3/"
+    },
+    {
+      "id": "peppol-despatch-advice",
+      "label": "Peppol BIS Despatch Advice (T16)",
+      "country": "Peppol",
+      "documentTypes": [
+        "DespatchAdvice"
+      ],
+      "match": [
+        {
+          "customizationId": {
+            "startsWith": "urn:fdc:peppol.eu:poacc:trns:despatch_advice:3"
+          }
+        }
+      ],
+      "source": {
+        "type": "url",
+        "url": "https://docs.peppol.eu/poacc/upgrade-3/files/PEPPOLBIS-Upgrade-Schematron.zip"
+      },
+      "entries": {
+        "*": [
+          {
+            "path": "schematron/PEPPOLBIS-T16.sch",
+            "format": "sch"
+          }
+        ]
+      },
+      "homepage": "https://docs.peppol.eu/poacc/upgrade-3/"
+    },
+    {
+      "id": "peppol-catalogue",
+      "label": "Peppol BIS Catalogue (T19)",
+      "country": "Peppol",
+      "documentTypes": [
+        "Catalogue"
+      ],
+      "match": [
+        {
+          "customizationId": {
+            "startsWith": "urn:fdc:peppol.eu:poacc:trns:catalogue:3"
+          }
+        }
+      ],
+      "source": {
+        "type": "url",
+        "url": "https://docs.peppol.eu/poacc/upgrade-3/files/PEPPOLBIS-Upgrade-Schematron.zip"
+      },
+      "entries": {
+        "*": [
+          {
+            "path": "schematron/PEPPOLBIS-T19.sch",
+            "format": "sch"
+          }
+        ]
+      },
+      "homepage": "https://docs.peppol.eu/poacc/upgrade-3/"
+    },
+    {
+      "id": "peppol-catalogue-response",
+      "label": "Peppol BIS Catalogue Response (T58)",
+      "country": "Peppol",
+      "documentTypes": [
+        "ApplicationResponse"
+      ],
+      "match": [
+        {
+          "customizationId": {
+            "startsWith": "urn:fdc:peppol.eu:poacc:trns:catalogue_response:3"
+          }
+        }
+      ],
+      "source": {
+        "type": "url",
+        "url": "https://docs.peppol.eu/poacc/upgrade-3/files/PEPPOLBIS-Upgrade-Schematron.zip"
+      },
+      "entries": {
+        "*": [
+          {
+            "path": "schematron/PEPPOLBIS-T58.sch",
+            "format": "sch"
+          }
+        ]
+      },
+      "homepage": "https://docs.peppol.eu/poacc/upgrade-3/"
+    },
+    {
+      "id": "peppol-mlr",
+      "label": "Peppol BIS Message Level Response (T71)",
+      "country": "Peppol",
+      "documentTypes": [
+        "ApplicationResponse"
+      ],
+      "match": [
+        {
+          "customizationId": {
+            "startsWith": "urn:fdc:peppol.eu:poacc:trns:mlr:3"
+          }
+        }
+      ],
+      "source": {
+        "type": "url",
+        "url": "https://docs.peppol.eu/poacc/upgrade-3/files/PEPPOLBIS-Upgrade-Schematron.zip"
+      },
+      "entries": {
+        "*": [
+          {
+            "path": "schematron/PEPPOLBIS-T71.sch",
+            "format": "sch"
+          }
+        ]
+      },
+      "homepage": "https://docs.peppol.eu/poacc/upgrade-3/"
+    },
+    {
+      "id": "peppol-order-response",
+      "label": "Peppol BIS Order Response (T76)",
+      "country": "Peppol",
+      "documentTypes": [
+        "OrderResponse"
+      ],
+      "match": [
+        {
+          "customizationId": {
+            "startsWith": "urn:fdc:peppol.eu:poacc:trns:order_response:3"
+          }
+        }
+      ],
+      "source": {
+        "type": "url",
+        "url": "https://docs.peppol.eu/poacc/upgrade-3/files/PEPPOLBIS-Upgrade-Schematron.zip"
+      },
+      "entries": {
+        "*": [
+          {
+            "path": "schematron/PEPPOLBIS-T76.sch",
+            "format": "sch"
+          }
+        ]
+      },
+      "homepage": "https://docs.peppol.eu/poacc/upgrade-3/"
+    },
+    {
+      "id": "peppol-punch-out",
+      "label": "Peppol BIS Punch Out (T77)",
+      "country": "Peppol",
+      "documentTypes": [
+        "Catalogue"
+      ],
+      "match": [
+        {
+          "customizationId": {
+            "startsWith": "urn:fdc:peppol.eu:poacc:trns:punch_out:3"
+          }
+        }
+      ],
+      "source": {
+        "type": "url",
+        "url": "https://docs.peppol.eu/poacc/upgrade-3/files/PEPPOLBIS-Upgrade-Schematron.zip"
+      },
+      "entries": {
+        "*": [
+          {
+            "path": "schematron/PEPPOLBIS-T77.sch",
+            "format": "sch"
+          }
+        ]
+      },
+      "homepage": "https://docs.peppol.eu/poacc/upgrade-3/"
+    },
+    {
+      "id": "peppol-order-agreement",
+      "label": "Peppol BIS Order Agreement (T110)",
+      "country": "Peppol",
+      "documentTypes": [
+        "OrderResponse"
+      ],
+      "match": [
+        {
+          "customizationId": {
+            "startsWith": "urn:fdc:peppol.eu:poacc:trns:order_agreement:3"
+          }
+        }
+      ],
+      "source": {
+        "type": "url",
+        "url": "https://docs.peppol.eu/poacc/upgrade-3/files/PEPPOLBIS-Upgrade-Schematron.zip"
+      },
+      "entries": {
+        "*": [
+          {
+            "path": "schematron/PEPPOLBIS-T110.sch",
+            "format": "sch"
+          }
+        ]
+      },
+      "homepage": "https://docs.peppol.eu/poacc/upgrade-3/"
+    },
+    {
+      "id": "peppol-invoice-response",
+      "label": "Peppol BIS Invoice Response (T111)",
+      "country": "Peppol",
+      "documentTypes": [
+        "ApplicationResponse"
+      ],
+      "match": [
+        {
+          "customizationId": {
+            "startsWith": "urn:fdc:peppol.eu:poacc:trns:invoice_response:3"
+          }
+        }
+      ],
+      "source": {
+        "type": "url",
+        "url": "https://docs.peppol.eu/poacc/upgrade-3/files/PEPPOLBIS-Upgrade-Schematron.zip"
+      },
+      "entries": {
+        "*": [
+          {
+            "path": "schematron/PEPPOLBIS-T111.sch",
+            "format": "sch"
+          }
+        ]
+      },
+      "homepage": "https://docs.peppol.eu/poacc/upgrade-3/"
+    },
+    {
+      "id": "peppol-order-change",
+      "label": "Peppol BIS Order Change (T114)",
+      "country": "Peppol",
+      "documentTypes": [
+        "OrderChange"
+      ],
+      "match": [
+        {
+          "customizationId": {
+            "startsWith": "urn:fdc:peppol.eu:poacc:trns:order_change:3"
+          }
+        }
+      ],
+      "source": {
+        "type": "url",
+        "url": "https://docs.peppol.eu/poacc/upgrade-3/files/PEPPOLBIS-Upgrade-Schematron.zip"
+      },
+      "entries": {
+        "*": [
+          {
+            "path": "schematron/PEPPOLBIS-T114.sch",
+            "format": "sch"
+          }
+        ]
+      },
+      "homepage": "https://docs.peppol.eu/poacc/upgrade-3/"
+    },
+    {
+      "id": "peppol-order-cancellation",
+      "label": "Peppol BIS Order Cancellation (T115)",
+      "country": "Peppol",
+      "documentTypes": [
+        "OrderCancellation"
+      ],
+      "match": [
+        {
+          "customizationId": {
+            "startsWith": "urn:fdc:peppol.eu:poacc:trns:order_cancellation:3"
+          }
+        }
+      ],
+      "source": {
+        "type": "url",
+        "url": "https://docs.peppol.eu/poacc/upgrade-3/files/PEPPOLBIS-Upgrade-Schematron.zip"
+      },
+      "entries": {
+        "*": [
+          {
+            "path": "schematron/PEPPOLBIS-T115.sch",
+            "format": "sch"
+          }
+        ]
+      },
+      "homepage": "https://docs.peppol.eu/poacc/upgrade-3/"
+    },
+    {
+      "id": "peppol-order-response-advanced",
+      "label": "Peppol BIS Order Response Advanced (T116)",
+      "country": "Peppol",
+      "documentTypes": [
+        "OrderResponse"
+      ],
+      "match": [
+        {
+          "customizationId": {
+            "startsWith": "urn:fdc:peppol.eu:poacc:trns:order_response_advanced:3"
+          }
+        }
+      ],
+      "source": {
+        "type": "url",
+        "url": "https://docs.peppol.eu/poacc/upgrade-3/files/PEPPOLBIS-Upgrade-Schematron.zip"
+      },
+      "entries": {
+        "*": [
+          {
+            "path": "schematron/PEPPOLBIS-T116.sch",
+            "format": "sch"
+          }
+        ]
+      },
+      "homepage": "https://docs.peppol.eu/poacc/upgrade-3/"
+    }
+  ]
+}

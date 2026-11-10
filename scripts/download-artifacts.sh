@@ -7,7 +7,7 @@
 # Requirements:
 #   - curl
 #   - unzip
-#   - Saxon (java -jar saxon-he.jar) for Schematron compilation (optional)
+#   - Java 11+ for Schematron compilation (optional; uses the bundled Saxon-HE)
 
 set -euo pipefail
 
@@ -30,18 +30,37 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# ─── Saxon-HE (bundled XSLT 2.0 processor) ────────────────────────
+# ─── Saxon-HE (bundled XSLT 1.0–3.0 processor) ────────────────────
 
-echo "=== Downloading Saxon-HE 10.9 ==="
-SAXON_URL="https://repo1.maven.org/maven2/net/sf/saxon/Saxon-HE/10.9/Saxon-HE-10.9.jar"
+SAXON_VERSION="12.10"
+XMLRESOLVER_VERSION="5.3.3"
+SAXON_JAR="$PROJECT_DIR/lib/Saxon-HE-$SAXON_VERSION.jar"
+XMLRESOLVER_JAR="$PROJECT_DIR/lib/xmlresolver-$XMLRESOLVER_VERSION.jar"
 mkdir -p "$PROJECT_DIR/lib"
-if [ ! -f "$PROJECT_DIR/lib/saxon-he-10.9.jar" ]; then
-    echo "Source: $SAXON_URL"
-    "$CURL" "${CURL_OPTS[@]}" -o "$PROJECT_DIR/lib/saxon-he-10.9.jar" "$SAXON_URL"
-    echo "Saxon-HE 10.9 downloaded."
-else
-    echo "Saxon-HE 10.9 already present, skipping."
-fi
+
+# Downloads a Maven Central artifact and verifies its published SHA-1
+fetch_maven() {
+    local path="$1" dest="$2"
+    if [ -f "$dest" ]; then
+        echo "$(basename "$dest") already present, skipping."
+        return
+    fi
+    local url="https://repo1.maven.org/maven2/$path"
+    echo "Source: $url"
+    "$CURL" "${CURL_OPTS[@]}" -o "$dest" "$url"
+    local expected actual
+    expected=$("$CURL" "${CURL_OPTS[@]}" -s "$url.sha1" | cut -c1-40)
+    actual=$(shasum -a 1 "$dest" | cut -c1-40)
+    if [ "$expected" != "$actual" ]; then
+        rm -f "$dest"
+        echo "ERROR: checksum mismatch for $url"
+        exit 1
+    fi
+}
+
+echo "=== Downloading Saxon-HE $SAXON_VERSION ==="
+fetch_maven "net/sf/saxon/Saxon-HE/$SAXON_VERSION/Saxon-HE-$SAXON_VERSION.jar" "$SAXON_JAR"
+fetch_maven "org/xmlresolver/xmlresolver/$XMLRESOLVER_VERSION/xmlresolver-$XMLRESOLVER_VERSION.jar" "$XMLRESOLVER_JAR"
 
 # ─── UBL 2.1 XSD ───────────────────────────────────────────────────
 
@@ -123,22 +142,9 @@ if [ -n "$PEPPOL_SCH" ]; then
             COMPILE_XSLT=$(find "$TEMP_DIR/schxslt" -name "pipeline-for-svrl.xsl" | head -1)
 
             if [ -n "$COMPILE_XSLT" ]; then
-                # Check for Saxon - prefer bundled JAR
-                SAXON_JAR=""
-                if [ -f "$PROJECT_DIR/lib/saxon-he-10.9.jar" ]; then
-                    SAXON_JAR="$PROJECT_DIR/lib/saxon-he-10.9.jar"
-                else
-                    for jar in /usr/local/share/saxon/*.jar /opt/homebrew/share/saxon/*.jar "$HOME"/.m2/repository/net/sf/saxon/Saxon-HE/*/Saxon-HE-*.jar; do
-                        if [ -f "$jar" ]; then
-                            SAXON_JAR="$jar"
-                            break
-                        fi
-                    done
-                fi
-
-                if [ -n "$SAXON_JAR" ]; then
+                if [ -f "$SAXON_JAR" ]; then
                     echo "Using Saxon: $SAXON_JAR"
-                    java -jar "$SAXON_JAR" \
+                    java -cp "$SAXON_JAR:$XMLRESOLVER_JAR" net.sf.saxon.Transform \
                         -s:"$PEPPOL_SCH" \
                         -xsl:"$COMPILE_XSLT" \
                         -o:"$ARTIFACTS_DIR/schematron/peppol/PEPPOL-EN16931-UBL.xslt" \
@@ -157,9 +163,8 @@ if [ -n "$PEPPOL_SCH" ]; then
         echo ""
         echo "NOTE: Peppol .sch files saved but not compiled to XSLT."
         echo "To compile manually:"
-        echo "  1. Install Saxon-HE: brew install saxon"
-        echo "  2. Download SchXslt: https://github.com/schxslt/schxslt/releases"
-        echo "  3. Run: java -jar saxon-he.jar -s:PEPPOL-EN16931-UBL.sch -xsl:pipeline-for-svrl.xsl -o:PEPPOL-EN16931-UBL.xslt"
+        echo "  1. Download SchXslt: https://github.com/schxslt/schxslt/releases"
+        echo "  2. Run: java -cp lib/Saxon-HE-$SAXON_VERSION.jar:lib/xmlresolver-$XMLRESOLVER_VERSION.jar net.sf.saxon.Transform -s:PEPPOL-EN16931-UBL.sch -xsl:pipeline-for-svrl.xsl -o:PEPPOL-EN16931-UBL.xslt"
     fi
 else
     echo "WARNING: Could not find PEPPOL-EN16931-UBL.sch in the archive."

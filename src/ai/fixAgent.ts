@@ -1,203 +1,237 @@
+import * as path from 'path';
 import * as vscode from 'vscode';
-import * as fs from 'fs';
 import { TracedIssue } from '../tracing/errorTraceMapper';
 import { AiConfig, FixProposal, FixSession } from './types';
 import { buildFixContext, buildMessages } from './contextBuilder';
-import { callLlm } from './llmClient';
-import { transformAndValidate, PipelineOptions } from '../pipeline/transformAndValidate';
+import { callLlm, LlmCancelledError } from './llmClient';
+import { parseFixResponse } from './fixParser';
+import { transformAndValidate, PipelineOptions, TransformResult } from '../pipeline/transformAndValidate';
+import { ValidationContext } from '../validation/validator';
+import { ValidationIssue } from '../validation/types';
 
 // Content provider for the AI fix diff view
 const fixContents = new Map<string, string>();
 
 export class AiFixContentProvider implements vscode.TextDocumentContentProvider {
-    private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
-    readonly onDidChangeTextDocument = this._onDidChange.event;
-
     provideTextDocumentContent(uri: vscode.Uri): string {
         return fixContents.get(uri.toString()) ?? '';
     }
-
-    update(uri: vscode.Uri, content: string): void {
-        fixContents.set(uri.toString(), content);
-        this._onDidChange.fire(uri);
-    }
 }
 
-export async function fixSingleIssue(
-    issue: TracedIssue,
-    outputContent: string,
-    inputXmlPath: string,
-    config: AiConfig,
-    apiKey: string,
-    pipelineOptions: PipelineOptions,
-    session?: FixSession
-): Promise<boolean> {
+export interface FixRunOptions {
+    config: AiConfig;
+    apiKey: string;
+    pipeline: PipelineOptions;
+    validation: ValidationContext;
+    /** Output of the transform the issue was found in */
+    output: string;
+    /** All issues of that transform, to detect fixes that add new errors */
+    previousIssues: ValidationIssue[];
+    token?: vscode.CancellationToken;
+    progress?: vscode.Progress<{ message?: string }>;
+}
+
+export interface FixOutcome {
+    resolved: boolean;
+    cancelled?: boolean;
+    /** Fresh pipeline result after an applied fix */
+    latest?: TransformResult;
+}
+
+export function issueKey(i: ValidationIssue): string {
+    return i.ruleId ? `${i.source}|${i.ruleId}` : `${i.source}|${i.message}`;
+}
+
+/**
+ * Asks the LLM for a stylesheet fix, shows it as a diff, applies it through
+ * the editor (undoable) and re-runs the pipeline to confirm the error is gone.
+ * Unsuccessful fixes are reverted and fed back to the model as context.
+ */
+export async function fixSingleIssue(issue: TracedIssue, opts: FixRunOptions): Promise<FixOutcome> {
     if (!issue.xsltSourceFile) {
-        vscode.window.showWarningMessage(
-            'Cannot fix this error: no XSLT source trace available. Run a transform first.'
-        );
-        return false;
+        vscode.window.showWarningMessage('Cannot fix this error: no XSLT source trace available. Run a transform first.');
+        return { resolved: false };
     }
 
-    if (!session) {
-        session = { issue, attempts: [] };
+    const doc = await openForEdit(issue.xsltSourceFile);
+    if (!doc) {
+        return { resolved: false, cancelled: true };
     }
+    const originalXslt = doc.getText();
+    const session: FixSession = { issue, attempts: [] };
+    const label = issue.ruleId || issue.message.substring(0, 50);
 
-    const originalXslt = fs.readFileSync(issue.xsltSourceFile, 'utf8');
+    for (let attempt = 0; attempt < opts.config.maxRetries; attempt++) {
+        if (opts.token?.isCancellationRequested) {
+            return { resolved: false, cancelled: true };
+        }
 
-    for (let attempt = 0; attempt < config.maxRetries; attempt++) {
-        // Build context and call LLM
-        const context = buildFixContext(issue, outputContent, inputXmlPath);
+        const context = buildFixContext(issue, originalXslt, opts.output, opts.pipeline.sourceXml, opts.config);
         const messages = buildMessages(context, session);
 
+        opts.progress?.report({ message: `${label}: asking AI (attempt ${attempt + 1}/${opts.config.maxRetries})...` });
         let response: string;
+        const abort = new AbortController();
+        const cancelSub = opts.token?.onCancellationRequested(() => abort.abort());
         try {
             const result = await callLlm({
-                provider: config.provider,
-                model: config.model,
-                apiKey,
+                provider: opts.config.provider,
+                model: opts.config.model,
+                apiKey: opts.apiKey,
                 messages,
+                timeoutMs: opts.config.timeoutSeconds * 1000,
+                signal: abort.signal,
             });
             response = result.content;
         } catch (err: any) {
+            if (err instanceof LlmCancelledError) {
+                return { resolved: false, cancelled: true };
+            }
             vscode.window.showErrorMessage(`AI request failed: ${err.message}`);
-            return false;
+            return { resolved: false };
+        } finally {
+            cancelSub?.dispose();
         }
 
-        // Parse the fix response
-        const proposal = parseFixResponse(response, originalXslt);
+        const proposal = parseFixResponse(response, originalXslt, context.mode, context.section);
         if (!proposal) {
-            vscode.window.showErrorMessage(
-                'AI response did not contain a valid fix. The response must include <fix>...</fix> tags.'
-            );
-            return false;
+            session.attempts.push({ rawResponse: response, succeeded: false });
+            if (!(await askRetry('The AI response did not contain a usable stylesheet fix.', attempt, opts.config.maxRetries))) {
+                return { resolved: false };
+            }
+            continue;
         }
 
-        // Show diff and ask for confirmation
-        const accepted = await showDiffAndConfirm(
-            issue.xsltSourceFile,
-            originalXslt,
-            proposal
-        );
-
+        const accepted = await showDiffAndConfirm(issue.xsltSourceFile, originalXslt, proposal);
         if (!accepted) {
-            // User rejected — stop
-            return false;
+            return { resolved: false };
         }
 
-        // Apply and verify
-        const verification = await applyAndVerify(
-            issue,
-            proposal,
-            originalXslt,
-            pipelineOptions
-        );
+        if (doc.getText() !== originalXslt) {
+            vscode.window.showWarningMessage(`${path.basename(issue.xsltSourceFile)} changed while the fix was being reviewed; the fix was not applied.`);
+            return { resolved: false };
+        }
+        opts.progress?.report({ message: `${label}: verifying fix...` });
+        await replaceDocumentContent(doc, proposal.proposedContent);
+        const verification = await verify(issue, opts);
 
         if (verification.resolved) {
-            vscode.window.showInformationMessage(
-                `Fix applied successfully. Error "${issue.ruleId || issue.message.substring(0, 50)}" resolved.`
-            );
-            return true;
-        }
-
-        // Fix didn't work — revert and record attempt
-        fs.writeFileSync(issue.xsltSourceFile, originalXslt, 'utf8');
-
-        session.attempts.push({
-            proposal,
-            succeeded: false,
-            newErrors: verification.remainingErrors,
-        });
-
-        if (attempt < config.maxRetries - 1) {
-            const retry = await vscode.window.showWarningMessage(
-                `Fix did not resolve the error (${verification.remainingErrors?.length ?? 0} errors remain). ` +
-                `Retry ${attempt + 2}/${config.maxRetries}?`,
-                'Retry', 'Cancel'
-            );
-            if (retry !== 'Retry') {
-                return false;
+            // The fixed issue itself is gone; it only lowers the baseline if it was an error
+            const baseline = countErrors(opts.previousIssues) - (issue.severity === vscode.DiagnosticSeverity.Error ? 1 : 0);
+            const introduced = verification.errorCount - baseline;
+            if (introduced > 0) {
+                const keep = await vscode.window.showWarningMessage(
+                    `The fix resolved "${label}" but the output now has ${introduced} more error${introduced !== 1 ? 's' : ''}. Keep it?`,
+                    'Keep', 'Revert'
+                );
+                if (keep !== 'Keep') {
+                    await revert(doc, proposal.proposedContent, originalXslt);
+                    return { resolved: false };
+                }
+            } else {
+                vscode.window.setStatusBarMessage(`$(pass) AI fix applied — "${label}" resolved`, 6000);
             }
+            return { resolved: true, latest: verification.latest };
+        }
+
+        // Didn't work — revert and give the model the feedback
+        if (!(await revert(doc, proposal.proposedContent, originalXslt))) {
+            return { resolved: false };
+        }
+        session.attempts.push({ proposal, succeeded: false, newErrors: verification.remainingErrors });
+
+        const remaining = verification.remainingErrors?.length ?? 0;
+        if (!(await askRetry(`Fix did not resolve the error (${remaining} error${remaining !== 1 ? 's' : ''} remain); it was reverted.`, attempt, opts.config.maxRetries))) {
+            return { resolved: false };
         }
     }
 
-    vscode.window.showWarningMessage(
-        `Could not resolve the error after ${config.maxRetries} attempts.`
+    vscode.window.showWarningMessage(`Could not resolve "${label}" after ${opts.config.maxRetries} attempts.`);
+    return { resolved: false };
+}
+
+function countErrors(issues: ValidationIssue[]): number {
+    return issues.filter(i => i.severity === vscode.DiagnosticSeverity.Error).length;
+}
+
+async function askRetry(message: string, attempt: number, maxRetries: number): Promise<boolean> {
+    if (attempt >= maxRetries - 1) {
+        return false;
+    }
+    const retry = await vscode.window.showWarningMessage(
+        `${message} Retry (${attempt + 2}/${maxRetries})?`,
+        'Retry', 'Cancel'
     );
-    return false;
+    return retry === 'Retry';
 }
 
-export function parseFixResponse(response: string, originalXslt: string): FixProposal | null {
-    // Match <fix explanation="...">...</fix> — the content is the full XSLT
-    const match = response.match(/<fix\s+explanation="([^"]*)">([\s\S]*?)<\/fix>/);
-    if (!match) {
-        // Try without explanation attribute
-        const simpleMatch = response.match(/<fix(?:\s[^>]*)?>([\s\S]*?)<\/fix>/);
-        if (!simpleMatch) {
-            return null;
+/** Opens the stylesheet for editing; unsaved changes must be saved first. */
+async function openForEdit(filePath: string): Promise<vscode.TextDocument | undefined> {
+    const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(filePath));
+    if (doc.isDirty) {
+        const choice = await vscode.window.showWarningMessage(
+            `${path.basename(filePath)} has unsaved changes. Save it before applying AI fixes?`,
+            { modal: true },
+            'Save and Continue'
+        );
+        if (choice !== 'Save and Continue') {
+            return undefined;
         }
-        const proposedContent = simpleMatch[1].trim();
-        if (!isValidXslt(proposedContent)) {
-            return null;
-        }
-        return {
-            originalContent: originalXslt,
-            proposedContent,
-            explanation: 'AI-proposed fix',
-        };
+        await doc.save();
     }
-
-    const explanation = match[1];
-    const proposedContent = match[2].trim();
-
-    if (!isValidXslt(proposedContent)) {
-        return null;
-    }
-
-    return {
-        originalContent: originalXslt,
-        proposedContent,
-        explanation,
-    };
+    return doc;
 }
 
-function isValidXslt(content: string): boolean {
-    // Basic structural validation
-    return content.includes('<xsl:stylesheet') || content.includes('<xsl:transform');
+/**
+ * Restores the original stylesheet, unless the user edited it after the fix
+ * was applied — their edits win and they're told to undo manually.
+ */
+async function revert(doc: vscode.TextDocument, applied: string, original: string): Promise<boolean> {
+    if (doc.getText() !== applied) {
+        vscode.window.showWarningMessage(
+            `${path.basename(doc.uri.fsPath)} was edited during verification, so the AI fix was not reverted automatically. Use Undo to remove it.`
+        );
+        return false;
+    }
+    await replaceDocumentContent(doc, original);
+    return true;
 }
 
-async function showDiffAndConfirm(
-    xsltFilePath: string,
-    originalContent: string,
-    proposal: FixProposal
-): Promise<boolean> {
-    // Use virtual documents for the diff view
-    const originalUri = vscode.Uri.parse(`ai-fix:original/${encodeURIComponent(xsltFilePath)}`);
-    const proposedUri = vscode.Uri.parse(`ai-fix:proposed/${encodeURIComponent(xsltFilePath)}`);
+/** Replaces the document text through the editor (so Undo works) and saves. */
+async function replaceDocumentContent(doc: vscode.TextDocument, content: string): Promise<void> {
+    const edit = new vscode.WorkspaceEdit();
+    edit.replace(doc.uri, new vscode.Range(doc.positionAt(0), doc.positionAt(doc.getText().length)), content);
+    await vscode.workspace.applyEdit(edit);
+    await doc.save();
+}
 
+async function showDiffAndConfirm(xsltFilePath: string, originalContent: string, proposal: FixProposal): Promise<boolean> {
+    const stamp = Date.now();
+    const originalUri = vscode.Uri.parse(`ai-fix:original/${encodeURIComponent(xsltFilePath)}?${stamp}`);
+    const proposedUri = vscode.Uri.parse(`ai-fix:proposed/${encodeURIComponent(xsltFilePath)}?${stamp}`);
     fixContents.set(originalUri.toString(), originalContent);
     fixContents.set(proposedUri.toString(), proposal.proposedContent);
-
-    const fileName = xsltFilePath.split(/[\\/]/).pop() ?? 'stylesheet.xsl';
 
     await vscode.commands.executeCommand(
         'vscode.diff',
         originalUri,
         proposedUri,
-        `AI Fix: ${fileName} — ${proposal.explanation}`,
+        `AI Fix: ${path.basename(xsltFilePath)} — ${proposal.explanation}`,
         { preview: true }
     );
 
     const choice = await vscode.window.showInformationMessage(
         `AI Fix: ${proposal.explanation}`,
-        { modal: false },
         'Accept', 'Reject'
     );
 
-    // Close the diff editor
-    await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
-
-    // Clean up virtual doc contents
+    // Close exactly the diff tab we opened, wherever it is now
+    const tabs = vscode.window.tabGroups.all.flatMap(g => g.tabs).filter(t =>
+        t.input instanceof vscode.TabInputTextDiff && t.input.modified.toString() === proposedUri.toString()
+    );
+    if (tabs.length > 0) {
+        await vscode.window.tabGroups.close(tabs);
+    }
     fixContents.delete(originalUri.toString());
     fixContents.delete(proposedUri.toString());
 
@@ -207,60 +241,41 @@ async function showDiffAndConfirm(
 interface VerificationResult {
     resolved: boolean;
     remainingErrors?: string[];
+    latest?: TransformResult;
+    errorCount: number;
 }
 
-async function applyAndVerify(
-    issue: TracedIssue,
-    proposal: FixProposal,
-    originalXslt: string,
-    pipelineOptions: PipelineOptions
-): Promise<VerificationResult> {
-    const xsltFilePath = issue.xsltSourceFile!;
-
-    // Write the proposed fix
-    fs.writeFileSync(xsltFilePath, proposal.proposedContent, 'utf8');
-
+async function verify(issue: TracedIssue, opts: FixRunOptions): Promise<VerificationResult> {
     try {
-        // Re-run the pipeline
-        const result = await transformAndValidate({
-            ...pipelineOptions,
-            xsltStylesheet: xsltFilePath,
-            enableTracing: true,
-        });
-
-        if (!result.validationResult) {
-            // Not UBL output anymore — that's a problem
+        const latest = await transformAndValidate({ ...opts.pipeline, enableTracing: true }, opts.validation);
+        if (!latest.validationResult) {
             return {
                 resolved: false,
-                remainingErrors: ['Output is no longer recognized as UBL document'],
+                remainingErrors: ['The output is no longer recognized as a UBL document'],
+                errorCount: 0,
             };
         }
-
-        const remainingIssues = result.validationResult.issues;
-
-        // Check if the original error is resolved
-        const originalStillPresent = remainingIssues.some(i => {
-            if (issue.ruleId && i.ruleId) {
-                return i.ruleId === issue.ruleId;
-            }
-            return i.message === issue.message;
-        });
-
-        if (!originalStillPresent) {
-            return { resolved: true };
+        const issues = latest.validationResult.issues;
+        if (latest.validationResult.toolErrors.length > 0) {
+            // A check that could not run proves nothing about the error
+            return { resolved: false, remainingErrors: latest.validationResult.toolErrors, errorCount: countErrors(issues) };
         }
-
+        const key = issueKey(issue);
+        const stillPresent = issues.some(i => issueKey(i) === key);
+        const errors = countErrors(issues);
+        if (!stillPresent) {
+            return { resolved: true, latest, errorCount: errors };
+        }
         return {
             resolved: false,
-            remainingErrors: remainingIssues.map(i =>
-                `[${i.source}${i.ruleId ? '/' + i.ruleId : ''}] ${i.message}`
-            ),
+            remainingErrors: issues.map(i => `[${i.source}${i.ruleId ? '/' + i.ruleId : ''}] ${i.message}`),
+            errorCount: errors,
         };
     } catch (err: any) {
-        // Transform or validation failed — revert
         return {
             resolved: false,
-            remainingErrors: [`Pipeline error: ${err.message}`],
+            remainingErrors: [`Transform failed: ${err.message}`],
+            errorCount: 0,
         };
     }
 }
