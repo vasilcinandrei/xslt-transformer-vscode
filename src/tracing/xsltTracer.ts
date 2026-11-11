@@ -185,8 +185,11 @@ function fileUriVariants(p: string): string[] {
 function pathVariants(p: string): string[] {
     const variants = new Set<string>();
     const add = (q: string) => {
-        variants.add(pathToFileURL(q).toString());           // file:///tmp/x
-        variants.add('file:' + pathToFileURL(q).pathname);    // file:/tmp/x (Java style)
+        // file:///tmp/x and Java's file:/tmp/x, percent-encoded or not: Node encodes
+        // characters Java leaves alone (e.g. "~" on Windows, non-ASCII letters)
+        for (const v of fileUriVariants(q)) {
+            variants.add(v);
+        }
         variants.add(q);
     };
     add(p);

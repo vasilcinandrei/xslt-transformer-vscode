@@ -70,6 +70,23 @@ test('includes are instrumented recursively and errors map back to original path
     }
 });
 
+test('error messages map back to original paths with special characters', () => {
+    // Java writes file URIs without percent-encoding "~", spaces aside, or non-ASCII letters
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'Facturé ~1 '));
+    try {
+        fs.writeFileSync(path.join(dir, 'main.xsl'), XSL.replace('<xsl:include href="common.xsl"/>', ''));
+        const inst = instrumentStylesheets(path.join(dir, 'main.xsl'));
+        try {
+            const javaStyle = 'file:' + decodeURIComponent(pathToFileURL(inst.mainPath).pathname);
+            assert.equal(inst.mapMessage(`error: ${javaStyle}:2: x`), `error: ${path.join(dir, 'main.xsl')}:2: x`);
+        } finally {
+            inst.cleanup();
+        }
+    } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+    }
+});
+
 test('parseTracedOutput joins start tags that Saxon wrapped', () => {
     const raw = [
         `<Invoice xmlns="urn:inv"`,
