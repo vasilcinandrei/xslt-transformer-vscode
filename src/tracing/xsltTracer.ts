@@ -153,6 +153,11 @@ export function instrumentStylesheets(mainXsltPath: string): InstrumentedStylesh
         for (const variant of pathVariants(temp)) {
             replacements.push([variant, original]);
         }
+        // xml:base makes Saxon cite the original as a file: URI; show the native path
+        // (on Windows "file:/C:/x/a.xsl" would otherwise never match "C:\\x\\a.xsl")
+        for (const uri of fileUriVariants(original)) {
+            replacements.push([uri, original]);
+        }
     }
     // Longest first so file: URIs are replaced before bare paths
     replacements.sort((a, b) => b[0].length - a[0].length);
@@ -170,6 +175,11 @@ export function instrumentStylesheets(mainXsltPath: string): InstrumentedStylesh
             return out;
         },
     };
+}
+
+function fileUriVariants(p: string): string[] {
+    const url = pathToFileURL(p);
+    return [url.toString(), 'file:' + url.pathname, decodeURIComponent(url.toString()), 'file:' + decodeURIComponent(url.pathname)];
 }
 
 function pathVariants(p: string): string[] {

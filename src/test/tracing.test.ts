@@ -58,6 +58,9 @@ test('includes are instrumented recursively and errors map back to original path
             assert.match(included, /<x ublvtrace:t="1:1"\/>/);
             const msg = inst.mapMessage(`error: ${pathToFileURL(inst.mainPath)}:7: boom`);
             assert.equal(msg, `error: ${path.join(dir, 'main.xsl')}:7: boom`);
+            // Saxon cites the original through xml:base, in Java's file:/ form
+            const viaBase = inst.mapMessage(`error: file:${pathToFileURL(path.join(dir, 'main.xsl')).pathname}:3: x`);
+            assert.equal(viaBase, `error: ${path.join(dir, 'main.xsl')}:3: x`);
         } finally {
             inst.cleanup();
         }

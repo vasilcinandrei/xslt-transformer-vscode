@@ -310,7 +310,8 @@
     "lint": "eslint src --ext ts",
     "package": "vsce package",
     "test:e2e": "npm run compile && npm run bundle && node out/e2e/runTest.js",
-    "verify:rules": "npm run compile && node scripts/verify-rules.js"
+    "verify:rules": "npm run compile && node scripts/verify-rules.js",
+    "test:ci": "npm run compile && node --require ./out/test/setup.js --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=tap --test-reporter-destination=test-results.tap \"out/test/*.test.js\""
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
