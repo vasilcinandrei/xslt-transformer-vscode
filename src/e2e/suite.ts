@@ -169,6 +169,7 @@ export async function run(): Promise<void> {
                 assert.ok(when.includes(term), `${id} button hidden for ${term}: ${when}`);
             }
         }
+        assert.ok((menus.find(m => m.command === 'xslt-transformer.peppolCheck')?.when ?? '').includes('resourceLangId == xml'), 'Peppol button missing on XML files');
     });
 
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ubl-e2e-'));
@@ -228,6 +229,21 @@ export async function run(): Promise<void> {
         assert.match(text, /0208:1035904075/);
         assert.match(text, /Production\s*✓ registered/);
         assert.match(text, /Test\s*✗ not registered/);
+    });
+
+    await check('UBL Preview renders the invoice and its PDF attachment', async () => {
+        const fixture = path.resolve(__dirname, '..', '..', 'src', 'test', 'fixtures', 'invoice-with-attachments.xml');
+        const file = path.join(dir, 'with-attachments.xml');
+        fs.copyFileSync(fixture, file);
+        await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
+        await vscode.commands.executeCommand('xslt-transformer.showPreview');
+        const text = await waitFor(async () => {
+            const t = await vscode.commands.executeCommand<string>('xslt-transformer._previewText');
+            return t && /1 page\(s\)/.test(t) ? t : undefined;
+        }, 'the preview to render the PDF attachment', 60000);
+        for (const expected of ['Commercial invoice', 'INV-1001', 'Amount due', 'INV-1001.pdf', 'looks like image/png', 'https://example.com/contracts/4711.pdf']) {
+            assert.ok(text.includes(expected), `preview is missing "${expected}"`);
+        }
     });
 
     fs.rmSync(dir, { recursive: true, force: true });

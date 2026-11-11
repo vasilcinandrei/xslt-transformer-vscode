@@ -23,6 +23,11 @@ Transform XML with XSLT 1.0, 2.0 or 3.0 and validate UBL 2.1 documents against t
 - **Validate on save**: UBL documents are checked whenever you save them, and the result shows in the status bar. Other XML files are ignored.
 - **Unsaved and untitled documents** are validated as they are in the editor.
 
+### UBL Preview
+Click the preview button in the title bar of a UBL file (or run **UBL: Open Preview**). A panel opens beside the editor and follows the active document as you type, so it also works on transform output.
+- **Document:** the invoice or credit note as a readable document: parties with addresses and IDs, references, lines, allowances and charges, the VAT breakdown, payment details (IBAN, payment reference, mandate) and totals. Codes are spelled out (380 → Commercial invoice, S → Standard rate, 58 → SEPA credit transfer). Other UBL types show their header, parties and lines.
+- **Attachments:** every embedded file (`cbc:EmbeddedDocumentBinaryObject`). PDFs are rendered inside VS Code; images and text are shown inline; any file can be saved or opened in its default app. Each attachment is checked for a missing `mimeCode` or `filename`, types Peppol doesn't allow, content that doesn't match the declared type, invalid base64 and very large files. External references are listed too.
+
 ### Peppol Network panel
 Click the **UBL Validator** icon in the Activity Bar while a UBL document is open. The panel reads the sender and receiver from their `cbc:EndpointID`s and checks them on the Peppol **production** and **test** networks:
 - **Registered?** Looked up in the Peppol SML; the panel also shows which SMP holds the participant.
@@ -98,6 +103,7 @@ The list of rule sets comes from [`rules/catalog.json`](rules/catalog.json), whi
 | UBL: Validate XSD Only / Business Rules Only | One part of the validation |
 | UBL: Fix All Errors with AI | Work through all traced errors with the AI agent |
 | UBL: Select AI Provider / Set AI API Key | Configure the AI agent |
+| UBL: Open Preview | Readable document view plus embedded attachments |
 | UBL: Check Peppol Participants | Open the Peppol Network panel and re-check the open document |
 | UBL: Show Business Rules | Which rules apply to the open document and why; all rule sets and versions |
 | UBL: Update Business Rules | Check every downloaded rule set for a new version now |
@@ -176,6 +182,7 @@ Bundled components have their own licenses:
 - Saxon-HE 12.10: MPL-2.0
 - xmlresolver: Apache-2.0
 - SchXslt2: MIT
+- pdf.js: Apache-2.0
 - Downloaded rule sets keep their publishers' licenses (listed in **UBL: Show Business Rules** and `rules/catalog.json`).
 
 See `validation-artifacts/README.md` for details.

@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
+         xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
+         xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
+   <cbc:CustomizationID>urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0</cbc:CustomizationID>
+   <cbc:ProfileID>urn:fdc:peppol.eu:2017:poacc:billing:01:1.0</cbc:ProfileID>
+   <cbc:ID>INV-1001</cbc:ID>
+   <cbc:IssueDate>2026-11-01</cbc:IssueDate>
+   <cbc:DueDate>2026-12-01</cbc:DueDate>
+   <cbc:InvoiceTypeCode>380</cbc:InvoiceTypeCode>
+   <cbc:DocumentCurrencyCode>EUR</cbc:DocumentCurrencyCode>
+   <cbc:BuyerReference>PO-77</cbc:BuyerReference>
+   <cac:AdditionalDocumentReference>
+      <cbc:ID>INV-1001-PDF</cbc:ID>
+      <cbc:DocumentDescription>Invoice as PDF</cbc:DocumentDescription>
+      <cac:Attachment>
+         <cbc:EmbeddedDocumentBinaryObject mimeCode="application/pdf" filename="INV-1001.pdf">JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA1OTUgODQyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgNSAwIFIgPj4gPj4gPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCAxMDkgPj4Kc3RyZWFtCkJUIC9GMSAyMCBUZiA2MCA3NjAgVGQgKEludm9pY2UgSU5WLTEwMDEpIFRqIDAgLTMwIFRkIC9GMSAxMiBUZiAoUERGIGNvcHkgZW1iZWRkZWQgaW4gdGhlIFVCTCBkb2N1bWVudCkgVGogRVQKZW5kc3RyZWFtCmVuZG9iago1IDAgb2JqCjw8IC9UeXBlIC9Gb250IC9TdWJ0eXBlIC9UeXBlMSAvQmFzZUZvbnQgL0hlbHZldGljYSA+PgplbmRvYmoKeHJlZgowIDYKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNTggMDAwMDAgbiAKMDAwMDAwMDExNSAwMDAwMCBuIAowMDAwMDAwMjQxIDAwMDAwIG4gCjAwMDAwMDA0MDEgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA2IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgo0NzEKJSVFT0YK</cbc:EmbeddedDocumentBinaryObject>
+      </cac:Attachment>
+   </cac:AdditionalDocumentReference>
+   <cac:AdditionalDocumentReference>
+      <cbc:ID>TIMESHEET</cbc:ID>
+      <cbc:DocumentDescription>Mislabelled attachment (PNG declared as PDF)</cbc:DocumentDescription>
+      <cac:Attachment>
+         <cbc:EmbeddedDocumentBinaryObject mimeCode="application/pdf">iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC</cbc:EmbeddedDocumentBinaryObject>
+      </cac:Attachment>
+   </cac:AdditionalDocumentReference>
+   <cac:AdditionalDocumentReference>
+      <cbc:ID>CONTRACT</cbc:ID>
+      <cac:Attachment>
+         <cac:ExternalReference><cbc:URI>https://example.com/contracts/4711.pdf</cbc:URI></cac:ExternalReference>
+      </cac:Attachment>
+   </cac:AdditionalDocumentReference>
+   <cac:AccountingSupplierParty>
+      <cac:Party>
+         <cbc:EndpointID schemeID="0106">12345678</cbc:EndpointID>
+         <cac:PartyName>
+            <cbc:Name>Seller BV</cbc:Name>
+         </cac:PartyName>
+         <cac:PostalAddress>
+            <cbc:StreetName>Hoofdstraat 1</cbc:StreetName>
+            <cbc:CityName>Amsterdam</cbc:CityName>
+            <cbc:PostalZone>1011AA</cbc:PostalZone>
+            <cac:Country>
+               <cbc:IdentificationCode>NL</cbc:IdentificationCode>
+            </cac:Country>
+         </cac:PostalAddress>
+         <cac:PartyTaxScheme>
+            <cbc:CompanyID>NL123456789B01</cbc:CompanyID>
+            <cac:TaxScheme>
+               <cbc:ID>VAT</cbc:ID>
+            </cac:TaxScheme>
+         </cac:PartyTaxScheme>
+         <cac:PartyLegalEntity>
+            <cbc:RegistrationName>Seller BV</cbc:RegistrationName>
+            <cbc:CompanyID schemeID="0106">12345678</cbc:CompanyID>
+         </cac:PartyLegalEntity>
+      </cac:Party>
+   </cac:AccountingSupplierParty>
+   <cac:AccountingCustomerParty>
+      <cac:Party>
+         <cbc:EndpointID schemeID="0208">1035904075</cbc:EndpointID>
+         <cac:PartyName>
+            <cbc:Name>BV Koen Vermoesen</cbc:Name>
+         </cac:PartyName>
+         <cac:PostalAddress>
+            <cbc:StreetName>Hauptstrasse 5</cbc:StreetName>
+            <cbc:CityName>Berlin</cbc:CityName>
+            <cbc:PostalZone>10115</cbc:PostalZone>
+            <cac:Country>
+               <cbc:IdentificationCode>DE</cbc:IdentificationCode>
+            </cac:Country>
+         </cac:PostalAddress>
+         <cac:PartyLegalEntity>
+            <cbc:RegistrationName>Buyer GmbH</cbc:RegistrationName>
+         </cac:PartyLegalEntity>
+      </cac:Party>
+   </cac:AccountingCustomerParty>
+   <cac:PaymentMeans>
+      <cbc:PaymentMeansCode>30</cbc:PaymentMeansCode>
+      <cac:PayeeFinancialAccount>
+         <cbc:ID>NL91ABNA0417164300</cbc:ID>
+      </cac:PayeeFinancialAccount>
+   </cac:PaymentMeans>
+   <cac:TaxTotal>
+      <cbc:TaxAmount currencyID="EUR">27.30</cbc:TaxAmount>
+      <cac:TaxSubtotal>
+         <cbc:TaxableAmount currencyID="EUR">130.00</cbc:TaxableAmount>
+         <cbc:TaxAmount currencyID="EUR">27.30</cbc:TaxAmount>
+         <cac:TaxCategory>
+            <cbc:ID>S</cbc:ID>
+            <cbc:Percent>21</cbc:Percent>
+            <cac:TaxScheme>
+               <cbc:ID>VAT</cbc:ID>
+            </cac:TaxScheme>
+         </cac:TaxCategory>
+      </cac:TaxSubtotal>
+   </cac:TaxTotal>
+   <cac:LegalMonetaryTotal>
+      <cbc:LineExtensionAmount currencyID="EUR">130.00</cbc:LineExtensionAmount>
+      <cbc:TaxExclusiveAmount currencyID="EUR">130.00</cbc:TaxExclusiveAmount>
+      <cbc:TaxInclusiveAmount currencyID="EUR">157.30</cbc:TaxInclusiveAmount>
+      <cbc:PayableAmount currencyID="EUR">157.30</cbc:PayableAmount>
+   </cac:LegalMonetaryTotal>
+   <cac:InvoiceLine>
+      <cbc:ID>1</cbc:ID>
+      <cbc:InvoicedQuantity unitCode="C62">2</cbc:InvoicedQuantity>
+      <cbc:LineExtensionAmount currencyID="EUR">100.00</cbc:LineExtensionAmount>
+      <cac:Item>
+         <cbc:Name>Widget</cbc:Name>
+         <cac:ClassifiedTaxCategory>
+            <cbc:ID>S</cbc:ID>
+            <cbc:Percent>21</cbc:Percent>
+            <cac:TaxScheme>
+               <cbc:ID>VAT</cbc:ID>
+            </cac:TaxScheme>
+         </cac:ClassifiedTaxCategory>
+      </cac:Item>
+      <cac:Price>
+         <cbc:PriceAmount currencyID="EUR">50.00</cbc:PriceAmount>
+      </cac:Price>
+   </cac:InvoiceLine>
+   <cac:InvoiceLine>
+      <cbc:ID>2</cbc:ID>
+      <cbc:InvoicedQuantity unitCode="C62">1</cbc:InvoicedQuantity>
+      <cbc:LineExtensionAmount currencyID="EUR">30.00</cbc:LineExtensionAmount>
+      <cac:Item>
+         <cbc:Name>Gadget</cbc:Name>
+         <cac:ClassifiedTaxCategory>
+            <cbc:ID>S</cbc:ID>
+            <cbc:Percent>21</cbc:Percent>
+            <cac:TaxScheme>
+               <cbc:ID>VAT</cbc:ID>
+            </cac:TaxScheme>
+         </cac:ClassifiedTaxCategory>
+      </cac:Item>
+      <cac:Price>
+         <cbc:PriceAmount currencyID="EUR">30.00</cbc:PriceAmount>
+      </cac:Price>
+   </cac:InvoiceLine>
+</Invoice>

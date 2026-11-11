@@ -1,7 +1,7 @@
 {
   "name": "xslt-transformer",
   "displayName": "UBL Validator",
-  "description": "Transform XML with XSLT 1.0–3.0 (Saxon-HE) and validate UBL 2.1 documents against XSD, EN16931 and Peppol BIS 3.0 — with errors traced back to the XSLT line that caused them. Only requires Java 11+.",
+  "description": "Transform XML with XSLT 1.0\u20133.0 (Saxon-HE) and validate UBL 2.1 documents against XSD, EN16931 and Peppol BIS 3.0 \u2014 with errors traced back to the XSLT line that caused them. Only requires Java 11+.",
   "version": "2.2.0",
   "publisher": "AndreiVasilcin",
   "author": {
@@ -79,6 +79,11 @@
         "title": "UBL: Validate Business Rules Only"
       },
       {
+        "command": "xslt-transformer.showPreview",
+        "title": "UBL: Open Preview (document and attachments)",
+        "icon": "$(open-preview)"
+      },
+      {
         "command": "xslt-transformer.peppolCheck",
         "title": "UBL: Check Peppol Participants",
         "icon": "$(globe)"
@@ -123,6 +128,16 @@
           "command": "xslt-transformer.validateUbl",
           "group": "navigation",
           "when": "resourceLangId == xml || resourceLangId == xsl || resourceLangId == xslt || resourceExtname =~ /\\.(xml|xsl|xslt)$/i"
+        },
+        {
+          "command": "xslt-transformer.peppolCheck",
+          "group": "navigation",
+          "when": "resourceLangId == xml || resourceExtname =~ /\\.xml$/i"
+        },
+        {
+          "command": "xslt-transformer.showPreview",
+          "group": "navigation",
+          "when": "resourceLangId == xml || resourceExtname =~ /\\.xml$/i"
         }
       ],
       "commandPalette": [
@@ -366,7 +381,7 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile:java && npm run bundle -- --minify",
-    "bundle": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --target=node20 --sourcemap",
+    "bundle": "node scripts/copy-pdfjs.js && esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --target=node20 --sourcemap",
     "compile": "tsc -p ./",
     "compile:java": "node scripts/compile-java.js",
     "watch": "npm run bundle -- --watch",
@@ -387,6 +402,7 @@
     "@vscode/vsce": "^4.1.0",
     "esbuild": "^0.28.2",
     "eslint": "^8.0.0",
+    "pdfjs-dist": "^6.5.438",
     "typescript": "^5.0.0"
   },
   "dependencies": {
