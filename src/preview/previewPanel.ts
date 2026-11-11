@@ -403,6 +403,8 @@ window.addEventListener('message', ev => {
 
 function safeFileName(a: Attachment): string {
     const ext = a.mimeCode === 'application/pdf' ? '.pdf' : a.mimeCode === 'image/png' ? '.png' : a.mimeCode === 'image/jpeg' ? '.jpg' : '';
+    // Strip path separators, characters Windows forbids, and control characters
+    // eslint-disable-next-line no-control-regex
     const base = (a.filename || a.referenceId || `attachment-${a.index + 1}`).replace(/[\\/:*?"<>|\x00-\x1f]+/g, '_').slice(0, 120);
     return /\.[A-Za-z0-9]{1,5}$/.test(base) ? base : base + ext;
 }

@@ -74,7 +74,7 @@ export function sniffMime(data: Buffer): string | undefined {
         return 'application/zip';
     }
     const text = data.subarray(0, 512).toString('utf8');
-    if (/^﻿?\s*<\?xml|^﻿?\s*<[A-Za-z]/.test(text)) {
+    if (/^\uFEFF?\s*<\?xml|^\uFEFF?\s*<[A-Za-z]/.test(text)) {
         return 'application/xml';
     }
     // Text: no NUL bytes in the first 512 bytes
