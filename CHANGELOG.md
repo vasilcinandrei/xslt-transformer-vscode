@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.1.2
+
+### Fixed
+- The transform and validate buttons are back in the editor title bar on both XML and XSLT files (2.1.0 showed transform only on stylesheets and validate only on XML).
+- Transforming from an XML file uses it as the input and only asks for the stylesheet, offering the one you used last with that file.
+- Validate on a stylesheet runs the transform and validates its output.
+
 ## 2.1.1
 
 ### Fixed

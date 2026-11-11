@@ -4,6 +4,7 @@ import { validateContent } from '../validation/validator';
 import { reportDiagnostics, showSummaryNotification } from '../validation/diagnosticsReporter';
 import { ValidationResult, ValidationScope } from '../validation/types';
 import { getDiagnosticCollection, getValidationContext, showError } from '../services';
+import { isXsltDocument } from './inputPicker';
 
 export type ValidationListener = (doc: vscode.TextDocument, result: ValidationResult) => void;
 
@@ -34,6 +35,11 @@ export function createValidateCommand(scope: ValidationScope, onValidated?: Vali
             return;
         }
         const document = editor.document;
+        // On a stylesheet, "validate" means: transform it and validate the output
+        if (isXsltDocument(document)) {
+            await vscode.commands.executeCommand('xslt-transformer.transform');
+            return;
+        }
 
         await vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,

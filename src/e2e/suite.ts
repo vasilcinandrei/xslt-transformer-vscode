@@ -161,6 +161,16 @@ export async function run(): Promise<void> {
         }
     });
 
+    await check('transform and validate buttons show on XML and XSLT files', async () => {
+        const menus: { command: string; when: string }[] = ext!.packageJSON.contributes.menus['editor/title'];
+        for (const id of ['xslt-transformer.transform', 'xslt-transformer.validateUbl']) {
+            const when = menus.find(m => m.command === id)?.when ?? '';
+            for (const term of ['resourceLangId == xml', 'resourceLangId == xslt', 'resourceLangId == xsl']) {
+                assert.ok(when.includes(term), `${id} button hidden for ${term}: ${when}`);
+            }
+        }
+    });
+
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ubl-e2e-'));
     const file = path.join(dir, 'invoice.xml');
     fs.writeFileSync(file, INVOICE_MISSING_ISSUE_DATE);
