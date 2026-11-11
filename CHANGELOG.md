@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.1.1
+
+### Fixed
+- Stylesheet error messages showed temporary file paths or `file:` URIs instead of your file's path on Windows and for folders with accented letters (e.g. `Facturé`). Watch mode can now place these errors on the right line.
+
 ## 2.1.0
 
 **Requires Java 11 or newer** (previously Java 8) and VS Code 1.90 or newer.

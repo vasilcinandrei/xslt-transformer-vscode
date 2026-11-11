@@ -1,8 +1,8 @@
 {
   "name": "xslt-transformer",
   "displayName": "UBL Validator",
-  "description": "Transform XML with XSLT 1.0\u20133.0 (Saxon-HE) and validate UBL 2.1 documents against XSD, EN16931 and Peppol BIS 3.0 \u2014 with errors traced back to the XSLT line that caused them. Only requires Java 11+.",
-  "version": "2.1.0",
+  "description": "Transform XML with XSLT 1.0–3.0 (Saxon-HE) and validate UBL 2.1 documents against XSD, EN16931 and Peppol BIS 3.0 — with errors traced back to the XSLT line that caused them. Only requires Java 11+.",
+  "version": "2.1.1",
   "publisher": "AndreiVasilcin",
   "author": {
     "name": "Andrei Vasilcin"
