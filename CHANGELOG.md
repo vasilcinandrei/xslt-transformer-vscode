@@ -1,6 +1,15 @@
 # Changelog
 
-## 2.1.2
+## 2.2.0
+
+### Added
+- **Peppol Network panel** (new UBL Validator icon in the Activity Bar). For the open UBL document it shows the sender and receiver from their `cbc:EndpointID`s. For the Peppol production and test networks it shows:
+  - whether each participant is registered, and at which SMP;
+  - whether the receiver accepts this exact document type and process;
+  - the receiver's access point and certificate (expiry, test or production CA);
+  - the name registered in the Peppol Directory, flagged when it differs from the document.
+- Lookups run while the panel is visible and are cached for 10 minutes. `ublValidator.peppol.lookup` switches them to manual or off, and `ublValidator.peppol.networks` chooses the networks.
+- **UBL: Check Peppol Participants** command.
 
 ### Fixed
 - The transform and validate buttons are back in the editor title bar on both XML and XSLT files (2.1.0 showed transform only on stylesheets and validate only on XML).

@@ -126,10 +126,10 @@ const INVOICE_MISSING_ISSUE_DATE = `<?xml version="1.0" encoding="UTF-8"?>
 </Invoice>
 `;
 
-async function waitFor<T>(fn: () => T | undefined, what: string, timeoutMs = 60000): Promise<T> {
+async function waitFor<T>(fn: () => T | undefined | Promise<T | undefined>, what: string, timeoutMs = 60000): Promise<T> {
     const start = Date.now();
     while (Date.now() - start < timeoutMs) {
-        const v = fn();
+        const v = await fn();
         if (v) {
             return v;
         }
@@ -209,6 +209,25 @@ export async function run(): Promise<void> {
         await otherDoc.save();
         await new Promise(r => setTimeout(r, 1000));
         assert.equal(vscode.languages.getDiagnostics(otherDoc.uri).length, 0);
+    });
+
+    await check('Peppol Network panel looks up the receiver on the live network', async () => {
+        // Receiver: a participant registered on Peppol production for BIS Billing invoices
+        const peppolInvoice = INVOICE_MISSING_ISSUE_DATE.replace(
+            /(<cac:AccountingCustomerParty>[\s\S]*?<cbc:EndpointID schemeID=")[^"]*(">)[^<]*(<)/,
+            '$10208$21035904075$3'
+        );
+        const file = path.join(dir, 'peppol.xml');
+        fs.writeFileSync(file, peppolInvoice);
+        await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
+        await vscode.commands.executeCommand('xslt-transformer.peppolCheck');
+        const text = await waitFor(async () => {
+            const t = await vscode.commands.executeCommand<string>('xslt-transformer._peppolViewText');
+            return t && /accepts this document type/.test(t) && !/checking/.test(t) ? t : undefined;
+        }, 'the Peppol panel to show the lookup result', 60000);
+        assert.match(text, /0208:1035904075/);
+        assert.match(text, /Production\s*✓ registered/);
+        assert.match(text, /Test\s*✗ not registered/);
     });
 
     fs.rmSync(dir, { recursive: true, force: true });

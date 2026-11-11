@@ -2,13 +2,13 @@ import { DocumentFacts } from './types';
 
 const P = '(?:[\\w.-]+:)?';
 
-function firstText(content: string, localName: string): string | undefined {
+export function firstText(content: string, localName: string): string | undefined {
     const m = content.match(new RegExp(`<${P}${localName}\\b[^>]*>([^<]*)</${P}${localName}>`));
     const v = m?.[1].trim();
     return v || undefined;
 }
 
-function block(content: string, localName: string): string | undefined {
+export function block(content: string, localName: string): string | undefined {
     const open = content.search(new RegExp(`<${P}${localName}[\\s>]`));
     if (open < 0) {
         return undefined;
@@ -20,7 +20,7 @@ function block(content: string, localName: string): string | undefined {
 }
 
 /** Country of a party: postal address first, then the VAT number prefix (EL → GR). */
-function partyCountry(party: string | undefined): string | undefined {
+export function partyCountry(party: string | undefined): string | undefined {
     if (!party) {
         return undefined;
     }

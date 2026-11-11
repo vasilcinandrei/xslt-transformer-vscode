@@ -13,6 +13,7 @@ import {
 import { getTracedIssue } from './validation/diagnosticsReporter';
 import { AutoValidator } from './validation/autoValidator';
 import { WatchManager } from './watch/watchManager';
+import { PeppolViewProvider } from './peppol/peppolView';
 import { AiConfig } from './ai/types';
 import { TracedIssue } from './tracing/errorTraceMapper';
 import { TransformResult } from './pipeline/transformAndValidate';
@@ -46,7 +47,13 @@ export function activate(context: vscode.ExtensionContext) {
 
     const autoValidator = new AutoValidator();
     const watchManager = new WatchManager(context);
-    context.subscriptions.push(autoValidator, watchManager);
+    const peppolView = new PeppolViewProvider();
+    context.subscriptions.push(
+        autoValidator,
+        watchManager,
+        peppolView,
+        vscode.window.registerWebviewViewProvider(PeppolViewProvider.viewId, peppolView)
+    );
 
     const register = (id: string, fn: (...args: any[]) => unknown) =>
         context.subscriptions.push(vscode.commands.registerCommand(id, fn));
@@ -61,6 +68,12 @@ export function activate(context: vscode.ExtensionContext) {
     register('xslt-transformer.showMapping', createShowMappingCommand(context));
     register('xslt-transformer.initConfig', initConfigCommand);
     register('xslt-transformer.showInfo', showValidatorInfo);
+    register('xslt-transformer.peppolCheck', async () => {
+        await vscode.commands.executeCommand(`${PeppolViewProvider.viewId}.focus`);
+        peppolView.refresh();
+    });
+    // For the end-to-end tests: what the Peppol panel currently shows
+    register('xslt-transformer._peppolViewText', () => peppolView.lastRenderedText);
     register('xslt-transformer.showRules', showBusinessRules);
     register('xslt-transformer.updateRules', updateBusinessRules);
     register('xslt-transformer.downloadAllRules', downloadAllBusinessRules);

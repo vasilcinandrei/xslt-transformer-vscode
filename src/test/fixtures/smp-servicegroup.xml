@@ -1,0 +1,19 @@
+<ServiceGroup xmlns:ids="http://busdox.org/transport/identifiers/1.0/" xmlns="http://busdox.org/serviceMetadata/publishing/1.0/">
+  <ids:ParticipantIdentifier scheme="iso6523-actorid-upis">0208:1035904075</ids:ParticipantIdentifier>
+  <ServiceMetadataReferenceCollection>
+    <ServiceMetadataReference href="https://smp.billit.be/iso6523-actorid-upis%3A%3A0208%3A1035904075/services/busdox-docid-qns%3A%3Aurn%3Aoasis%3Anames%3Aspecification%3Aubl%3Aschema%3Axsd%3AApplicationResponse-2%3A%3AApplicationResponse%23%23urn%3Afdc%3Apeppol.eu%3Apoacc%3Atrns%3Ainvoice_response%3A3%3A%3A2.1" />
+    <ServiceMetadataReference href="https://smp.billit.be/iso6523-actorid-upis%3A%3A0208%3A1035904075/services/busdox-docid-qns%3A%3Aurn%3Aoasis%3Anames%3Aspecification%3Aubl%3Aschema%3Axsd%3AApplicationResponse-2%3A%3AApplicationResponse%23%23urn%3Afdc%3Apeppol.eu%3Apoacc%3Atrns%3Amlr%3A3%3A%3A2.1" />
+    <ServiceMetadataReference href="https://smp.billit.be/iso6523-actorid-upis%3A%3A0208%3A1035904075/services/busdox-docid-qns%3A%3Aurn%3Aoasis%3Anames%3Aspecification%3Aubl%3Aschema%3Axsd%3ACreditNote-2%3A%3ACreditNote%23%23urn%3Acen.eu%3Aen16931%3A2017%23compliant%23urn%3Afdc%3Apeppol.eu%3A2017%3Apoacc%3Abilling%3A3.0%3A%3A2.1" />
+    <ServiceMetadataReference href="https://smp.billit.be/iso6523-actorid-upis%3A%3A0208%3A1035904075/services/busdox-docid-qns%3A%3Aurn%3Aoasis%3Anames%3Aspecification%3Aubl%3Aschema%3Axsd%3AInvoice-2%3A%3AInvoice%23%23urn%3Acen.eu%3Aen16931%3A2017%23compliant%23urn%3Afdc%3Apeppol.eu%3A2017%3Apoacc%3Abilling%3A3.0%3A%3A2.1" />
+    <ServiceMetadataReference href="https://smp.billit.be/iso6523-actorid-upis%3A%3A0208%3A1035904075/services/busdox-docid-qns%3A%3Aurn%3Aoasis%3Anames%3Aspecification%3Aubl%3Aschema%3Axsd%3AInvoice-2%3A%3AInvoice%23%23urn%3Acen.eu%3Aen16931%3A2017%23compliant%23urn%3Afdc%3Apeppol.eu%3A2017%3Apoacc%3Aselfbilling%3A3.0%3A%3A2.1" />
+    <ServiceMetadataReference href="https://smp.billit.be/iso6523-actorid-upis%3A%3A0208%3A1035904075/services/busdox-docid-qns%3A%3Aurn%3Aoasis%3Anames%3Aspecification%3Aubl%3Aschema%3Axsd%3ACreditNote-2%3A%3ACreditNote%23%23urn%3Acen.eu%3Aen16931%3A2017%23compliant%23urn%3Afdc%3Apeppol.eu%3A2017%3Apoacc%3Aselfbilling%3A3.0%3A%3A2.1" />
+  </ServiceMetadataReferenceCollection>
+  <Extension>
+    <DenominationList>
+      <Denomination>
+        <Language>nl</Language>
+        <Value>BV KOEN VERMOESEN</Value>
+      </Denomination>
+    </DenominationList>
+  </Extension>
+</ServiceGroup>

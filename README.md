@@ -23,6 +23,15 @@ Transform XML with XSLT 1.0, 2.0 or 3.0 and validate UBL 2.1 documents against t
 - **Validate on save**: UBL documents are checked whenever you save them, and the result shows in the status bar. Other XML files are ignored.
 - **Unsaved and untitled documents** are validated as they are in the editor.
 
+### Peppol Network panel
+Click the **UBL Validator** icon in the Activity Bar while a UBL document is open. The panel reads the sender and receiver from their `cbc:EndpointID`s and checks them on the Peppol **production** and **test** networks:
+- **Registered?** Looked up in the Peppol SML; the panel also shows which SMP holds the participant.
+- **Can the receiver accept this document?** The receiver's SMP must list the document's type (from `cbc:CustomizationID`) and process (from `cbc:ProfileID`). If it doesn't, the panel lists what the receiver does accept.
+- **Access point:** transport profile and URL, and the certificate's issuer and expiry. Expired certificates, and production endpoints with test certificates, are flagged.
+- **Directory name:** the name registered in the Peppol Directory, flagged when it doesn't match the document.
+
+It also flags missing or malformed `EndpointID`s (the scheme must be a four-digit EAS code). Lookups only run while the panel is visible and are cached for 10 minutes. Set `ublValidator.peppol.lookup` to `manual` or `off` if participant IDs shouldn't be sent to the Peppol infrastructure.
+
 ### AI fix agent (optional)
 - **Fix with AI** appears in the Quick Fix menu (`Cmd+.` / `Ctrl+.`) on traced errors; **UBL: Fix All Errors with AI** works through all of them.
 - Every fix is shown as a **diff for you to accept or reject**, applied through the editor (so **Undo works**), then the transform is re-run to confirm the error is gone. Fixes that don't work are reverted, and the model gets the remaining errors before retrying.
@@ -89,6 +98,7 @@ The list of rule sets comes from [`rules/catalog.json`](rules/catalog.json), whi
 | UBL: Validate XSD Only / Business Rules Only | One part of the validation |
 | UBL: Fix All Errors with AI | Work through all traced errors with the AI agent |
 | UBL: Select AI Provider / Set AI API Key | Configure the AI agent |
+| UBL: Check Peppol Participants | Open the Peppol Network panel and re-check the open document |
 | UBL: Show Business Rules | Which rules apply to the open document and why; all rule sets and versions |
 | UBL: Update Business Rules | Check every downloaded rule set for a new version now |
 | UBL: Download All Business Rules | Fetch every rule set for offline use |
@@ -108,6 +118,8 @@ The list of rule sets comes from [`rules/catalog.json`](rules/catalog.json), whi
 | `ublValidator.rules.customSchematron` | `[]` | Extra compiled Schematron (XSLT → SVRL) files |
 | `ublValidator.artifactsPath` | `""` | Folder with replacement UBL XSD schemas (same layout as the bundled `validation-artifacts`) |
 | `ublValidator.transformTimeoutSeconds` | `120` | Stop a transform or validation that runs longer |
+| `ublValidator.peppol.lookup` | `auto` | Peppol Network panel: `auto` (while visible), `manual`, or `off` |
+| `ublValidator.peppol.networks` | both | Which Peppol networks to check: `production`, `test` |
 | `ublValidator.javaPath` | `""` | Java executable to use (Java 11+) |
 | `ublValidator.ai.provider` | `gemini` | `gemini`, `groq`, `anthropic` or `openai` |
 | `ublValidator.ai.model` | `""` | Override the provider's default model |
